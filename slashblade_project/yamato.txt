@@ -1113,9 +1113,8 @@ else
                                 judgementCutSound()
                                 attack_fx({"judgement_cut",{owner():getEyePos()+owner():getAimVector()*45-owner():getEyeAngles():getRight()*5-owner():getEyeAngles():getRight()*15-owner():getEyeAngles():getUp()*15,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},false})
                             end
-                            if sheathing then
-                                quick_judgement_cut_block = true
-                            end
+                            quick_judgement_cut_block = true
+                            
                             if Frame == #Animation then
                                 if judgement_cut_active and not Sheathing then
                                     Frame=1
