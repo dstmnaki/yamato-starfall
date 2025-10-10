@@ -495,8 +495,6 @@ else
     local block_judgement_cut = false
     local m1downct = 0
     
-    local sheath_ct = 0
-    
     hook.add("net","",function(name,len,ply)
         if name == "double_jump_snd" then
             doubleJumpSound()
@@ -839,6 +837,7 @@ else
     end
     
     local lastAnimationName = ""
+    local quick_judgement_cut_block = true
     
     hook.add("think","main",function()
         if pthl.ready then
@@ -1027,6 +1026,7 @@ else
                             is_in = true
                             sheathSoundYamato()
                             
+                            quick_judgement_cut_block = false
                             sheath_time = timer.curtime()
                             sheath_fx_done = false
                         end
@@ -1064,14 +1064,12 @@ else
                                         Sheathing=true
                                         Frame=1
                                         FrameTime = 0
-                                        sheath_ct = timer.curtime()
                                     elseif delay != true then
                                         delay = true
                                         timer.create("sheath",(AnimationName == "atk_attack_05" and 0.6 or 0.3)-(AnimationName == "atk_aerial_rave" and 0.3 or 0),1,function()
                                             Sheathing=true
                                             Frame=1
                                             FrameTime = 0
-                                            sheath_ct = timer.curtime()
                                         end)
                                     end
                                 end
@@ -1110,10 +1108,13 @@ else
                     if owner():keyDown(IN_KEY.ATTACK) then
                         if m1down != true then
                             m1down = true
-                            if timer.curtime() - sheath_ct < 0.15 then
-                                sheath_ct = timer.curtime() - 1
+                            if not quick_judgement_cut_block and (timer.curtime() - sheath_time < 0.1) then
+                                quick_judgement_cut_block = true
                                 judgementCutSound()
                                 attack_fx({"judgement_cut",{owner():getEyePos()+owner():getAimVector()*45-owner():getEyeAngles():getRight()*5-owner():getEyeAngles():getRight()*15-owner():getEyeAngles():getUp()*15,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},false})
+                            end
+                            if sheathing then
+                                quick_judgement_cut_block = true
                             end
                             if Frame == #Animation then
                                 if judgement_cut_active and not Sheathing then
