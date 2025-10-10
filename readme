@@ -3,3 +3,15 @@ WIP RELEASE
 Toss both folders to data/starfall/ in garry's mod
 
 Spawn the file titled "yamato" in slashblade_project/ it might take a bit to load, also in case you run into holo limit issues, sf_holograms_max_cl 1000
+
+
+Requires the following, nothing should be missing but i can't say for sure
+
+StarfallEx
+https://github.com/thegrb93/StarfallEx
+
+SProps
+https://steamcommunity.com/workshop/filedetails/?id=173482196
+
+PAC3
+https://steamcommunity.com/sharedfiles/filedetails/?id=104691717
