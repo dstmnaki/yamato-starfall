@@ -141,13 +141,9 @@ if SERVER then
                 owner():setVelocity(Angle(0,owner():getEyeAngles().yaw,0):getForward()*1000)
             end
         end
-        if name == "send_anim" then
-            net.start("send_anim")
-            net.writeString(net.readString())
-            net.send(find.allPlayers(),false)
-        end
     end)
 else
+    if player() ~= owner() then return end
     require("nakilibs/pac_to_holo_loader.txt")
     require("slashblade_project/anim/anim_lib.txt")
     
@@ -502,11 +498,6 @@ else
     hook.add("net","",function(name,len,ply)
         if name == "double_jump_snd" then
             doubleJumpSound()
-        end
-        if name == "send_anim" then
-            if owner() != player() then
-                --AnimationData = Animations[net.readString()]
-            end
         end
     end)
     
@@ -976,15 +967,6 @@ else
             
             if AnimationData then
                 AnimationName = AnimationData[1]
-                --[[
-                if player() == owner() and (AnimationName != lastAnimationName) then
-                    if AnimationName and AnimationName != "" then
-                        net.start("send_anim")
-                        net.writeString(lastAnimationName)
-                        net.send()
-                    end
-                end
-                lastAnimationName = AnimationName--]]
                 if AnimationName == "atk_judgement_cut" then
                     Animation = AnimationData[Sheathing and 4 or (judgement_cut_ready and 3 or 2)] and AnimationData[Sheathing and 4 or (judgement_cut_ready and 3 or 2)] or Animations[AnimationNames[1]]
                 else
@@ -994,15 +976,17 @@ else
                 if Animation then FrameCount = #Animation end
                 if Animation and Animation[Frame] then
                     for I = 1, 9 do
-                        LastFrame=Animation[math.clamp(Frame,1,FrameCount)][I]
-                        NextFrame=Animation[((math.clamp(Frame+1,1,FrameCount))==FrameCount+1) and 1 or math.clamp(Frame+1,1,FrameCount)][I]
-                        holo = pthl.holos[bones[I]]
-                        
-                        mix = FrameTime/FrameRate
-                        
-                        holo:setAngles(holo:getParent():localToWorldAngles(math.slerpQuaternion(LastFrame:getQuaternion(),
-                        NextFrame:getQuaternion(),
-                        mix):getEulerAngle()))
+                        if holo and holo != nil and holo:isValid() then
+                            LastFrame=Animation[math.clamp(Frame,1,FrameCount)][I]
+                            NextFrame=Animation[((math.clamp(Frame+1,1,FrameCount))==FrameCount+1) and 1 or math.clamp(Frame+1,1,FrameCount)][I]
+                            holo = pthl.holos[bones[I]]
+                            
+                            mix = FrameTime/FrameRate
+                            
+                            holo:setAngles(holo:getParent():localToWorldAngles(math.slerpQuaternion(LastFrame:getQuaternion(),
+                            NextFrame:getQuaternion(),
+                            mix):getEulerAngle()))
+                        end
                     end
                     
                     FrameRate = Animation[math.clamp(Frame,1,FrameCount)][10]
