@@ -1,0 +1,57 @@
+--@name slashblade_project/anim/anim_lib
+--@author Nakkitsunami
+--@client
+--@include slashblade_project/anim/anim_idle_01.txt
+
+--@include slashblade_project/anim/anim_attack_01.txt
+--@include slashblade_project/anim/anim_attack_01_sheath.txt
+--@include slashblade_project/anim/anim_attack_02.txt
+--@include slashblade_project/anim/anim_attack_02_sheath.txt
+--@include slashblade_project/anim/anim_attack_03.txt
+--@include slashblade_project/anim/anim_attack_03_sheath.txt
+--@include slashblade_project/anim/anim_attack_04.txt
+--@include slashblade_project/anim/anim_attack_04_sheath.txt
+--@include slashblade_project/anim/anim_attack_05.txt
+--@include slashblade_project/anim/anim_attack_05_sheath.txt
+--@include slashblade_project/anim/anim_attack_06.txt
+--@include slashblade_project/anim/anim_attack_06_sheath.txt
+--@include slashblade_project/anim/anim_attack_07.txt
+--@include slashblade_project/anim/anim_attack_07_sheath.txt
+
+--@include slashblade_project/anim/anim_rapid_slash.txt
+--@include slashblade_project/anim/anim_rapid_slash_sheath.txt
+
+--@include slashblade_project/anim/anim_aerial_rave.txt
+--@include slashblade_project/anim/anim_attack_force_edge_01.txt
+
+--@include slashblade_project/anim/anim_judgement_cut_start.txt
+--@include slashblade_project/anim/anim_judgement_cut.txt
+--@include slashblade_project/anim/anim_judgement_cut_sheath.txt
+
+require("slashblade_project/anim/anim_idle_01.txt")
+
+require("slashblade_project/anim/anim_attack_01.txt")
+require("slashblade_project/anim/anim_attack_01_sheath.txt")
+require("slashblade_project/anim/anim_attack_02.txt")
+require("slashblade_project/anim/anim_attack_02_sheath.txt")
+require("slashblade_project/anim/anim_attack_03.txt")
+require("slashblade_project/anim/anim_attack_03_sheath.txt")
+require("slashblade_project/anim/anim_attack_04.txt")
+require("slashblade_project/anim/anim_attack_04_sheath.txt")
+require("slashblade_project/anim/anim_attack_05.txt")
+require("slashblade_project/anim/anim_attack_05_sheath.txt")
+require("slashblade_project/anim/anim_attack_06.txt")
+require("slashblade_project/anim/anim_attack_06_sheath.txt")
+require("slashblade_project/anim/anim_attack_07.txt")
+require("slashblade_project/anim/anim_attack_07_sheath.txt")
+
+require("slashblade_project/anim/anim_rapid_slash.txt")
+require("slashblade_project/anim/anim_rapid_slash_sheath.txt")
+
+require("slashblade_project/anim/anim_aerial_rave.txt")
+require("slashblade_project/anim/anim_attack_force_edge_01.txt")
+
+require("slashblade_project/anim/anim_judgement_cut_start.txt")
+require("slashblade_project/anim/anim_judgement_cut.txt")
+require("slashblade_project/anim/anim_judgement_cut_sheath.txt")
+

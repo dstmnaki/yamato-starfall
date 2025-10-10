@@ -1,0 +1,1221 @@
+--@name YAMATO
+--@author Nakkitsunami
+--@include nakilibs/pac_to_holo_loader.txt
+--@include slashblade_project/anim/anim_lib.txt
+--@shared
+
+if SERVER then
+    chip():setColor(Color(255,255,255,0))
+    local can_double_jump = true
+    local is_on_ground = true
+    local can_setpos = hasPermission("entities.setPos", owner())
+    local can_setvelocity = hasPermission("entities.setVelocity", owner())
+    local can_setspeed = hasPermission("player.modifyMovementProperties", owner())
+    local float = true
+    local floatct = timer.curtime()
+    local already_floating = false
+    local original_floating_ct = timer.curtime()
+    local block_force_ct = 0
+    hook.add("think","",function()
+        local vel = owner():getVelocity()
+        
+        if can_setvelocity then
+            if owner():keyDown(IN_KEY.JUMP) then
+                if space != true then
+                    space = true
+                    if is_on_ground == false and can_double_jump then
+                        can_double_jump = false
+                        owner():setVelocity(Vector(0,0,(vel.z < 0 and -vel.z or 0)+200*2))
+                        net.start("double_jump_snd")
+                        net.send(owner(),false)
+                        float = false
+                    end
+                end
+            else
+                if space != false then
+                    space = false
+                end
+                if is_on_ground then
+                    can_double_jump = true
+                end
+            end
+            is_on_ground = owner():isOnGround()
+            if is_on_ground then
+                float = false
+                already_floating = false
+                can_double_jump = true
+            end
+            if timer.curtime() - floatct > 1 and float then
+                float = false
+            end
+            if float and (timer.curtime() - block_force_ct > 0.1) then
+                owner():setVelocity(Vector(0,0,(vel.z < 0 and -vel.z or 0)*math.clamp(2-(timer.curtime()-original_floating_ct)*0.5,0,1)))
+            end
+        end
+    end)
+    if can_setspeed then
+        local storeRunSpeed = 400
+        local storeWalkSpeed = 200
+        local storeJumpPower = 200
+        owner():setRunSpeed(100)
+        owner():setWalkSpeed(400*1.3)
+        owner():setJumpPower(200*1.5)
+        hook.add("Removed", "", function()
+            owner():setRunSpeed(storeRunSpeed)
+            owner():setWalkSpeed(storeWalkSpeed)
+            owner():setJumpPower(storeJumpPower)
+        end)
+    end
+    function freezePlayer(bool)
+        if can_setspeed then
+            owner():setRunSpeed(bool and 0.1 or 100)
+            owner():setWalkSpeed(bool and 0.1 or 400*1.3)
+            owner():setJumpPower(bool and 0.1 or 200*1.5)
+        end
+    end
+    hook.add("EntityTakeDamage", "", function(target, attacker, inflictor, amount, type, position, force)
+        if type == DAMAGE.FALL and target == owner() then
+            return true
+        end
+    end)
+    hook.add("net","",function(name,len,ply)
+        if name == "stopmovement" then
+            freezePlayer(net.readBool())
+        end
+        if can_setvelocity then
+            if name == "float" then
+                float = true
+                floatct = timer.curtime()
+                block_force_ct = timer.curtime()+0.25
+                timer.simple(0,function()
+                    local vel = owner():getVelocity()
+                    
+                    owner():setVelocity(Vector(0,0,(vel.z < 0 and -vel.z or 0)+75))
+                end)
+                if already_floating != true then
+                    already_floating = true
+                    original_floating_ct = timer.curtime()
+                end
+            end
+            if name == "goup" then
+                if can_setpos then
+                    float = true
+                    floatct = timer.curtime()
+                    timer.simple(0.2,function()
+                        if owner():isValid() then
+                            owner():setVelocity(Vector(0,0,500))
+                            owner():setPos(owner():getPos()+Vector(0,0,1))
+                        end
+                    end)
+                end
+            end
+            if name == "goup_small" then
+                float = true
+                floatct = timer.curtime()
+                block_force_ct = timer.curtime()
+                timer.simple(0,function()
+                    owner():setVelocity(Vector(0,0,200))
+                end)
+            end
+            if name == "godown" then
+                float=false
+                block_force_ct = timer.curtime()
+                timer.simple(0,function()
+                    owner():setVelocity(Vector(0,0,-2000))
+                end)
+            end
+            if name == "dash" then
+                owner():setVelocity(-Angle(0,owner():getEyeAngles().yaw,0):getForward()*200)
+                freezePlayer(true)
+                timer.simple(0.2,function()
+                    if owner():isValid() then
+                        owner():setVelocity(Angle(0,owner():getEyeAngles().yaw,0):getForward()*4000)
+                        freezePlayer(false)
+                    end
+                end)
+            end
+            if name == "backup" then
+                owner():setVelocity(-Angle(0,owner():getEyeAngles().yaw,0):getForward()*200)
+            end
+            if name == "short_dash" then
+                owner():setVelocity(Angle(0,owner():getEyeAngles().yaw,0):getForward()*1000)
+            end
+        end
+        if name == "send_anim" then
+            net.start("send_anim")
+            net.writeString(net.readString())
+            net.send(find.allPlayers(),false)
+        end
+    end)
+else
+    require("nakilibs/pac_to_holo_loader.txt")
+    require("slashblade_project/anim/anim_lib.txt")
+    
+    local bones, reftable, holos, ht, hc = {}, {}, {}, {}, 0
+    local parent = chip()
+    local real_parent = chip()
+    
+    
+    -- \/ \/ \/ INSERT CODE INSIDE HERE \/ \/ \/
+    
+    local size = 1
+
+    local sword = true
+    local sheath = true
+    
+    local showBones = false
+    
+    local STATIONARY = false
+    
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(0,0,40),Angle()}
+    reftable["root"]=hc
+    
+    parent = reftable["root"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(),Angle()}
+    reftable["torso"]=hc
+    bones[1]=hc
+    
+    parent = reftable["torso"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(0,6,22),Angle()}
+    reftable["left_upperarm"]=hc
+    bones[2]=hc
+    
+    parent = reftable["left_upperarm"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(0,10,0),Angle()}
+    reftable["left_forearm"]=hc
+    bones[3]=hc
+    
+    parent = reftable["left_forearm"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(0,10,0),Angle()}
+    reftable["left_hand"]=hc
+    bones[4]=hc
+    
+    parent = reftable["left_hand"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(0,4,0),Angle()}
+    reftable["left_hand_flip"] = hc
+    bones[5]=hc
+    
+    parent = reftable["left_hand_flip"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(10,1.5,1),Angle(0,180,0),"","",Color(),Vector(0,0,0),{}}
+    reftable["sheath"] = hc
+    
+    
+    parent = reftable["torso"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(0,-6,22),Angle()}
+    reftable["right_upperarm"]=hc
+    bones[6]=hc
+    
+    parent = reftable["right_upperarm"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(0,-10,0),Angle()}
+    reftable["right_forearm"]=hc
+    bones[7]=hc
+    
+    parent = reftable["right_forearm"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(0,-10,0),Angle()}
+    reftable["right_hand"]=hc
+    bones[8]=hc
+    
+    parent = reftable["right_hand"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(0,-5,0),Angle()}
+    reftable["sword"] = hc
+    bones[9]=hc
+    
+    parent = reftable["root"]
+    hc=hc+1 ht[hc]={hc,parent,parent,Vector(0,0,0),Angle(),"","",Color(),Vector(0,0,0),{}}
+    reftable["sword_real"] = hc
+    
+    
+    local parent = reftable["sheath"]
+    local real_parent = reftable["sheath"]
+    
+    if sheath then
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(7.35,-1.25,-0.05),Angle(90,0,90),"models/pac/jiggle/base_cloth_0_gravity.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.3,0.3,0.3),{}}
+        bones["cloth_1"]=hc
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(7.35,-1.25,0.05),Angle(90,0,90),"models/pac/jiggle/base_cloth_0_gravity.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.3,0.3,0.3),{}}
+        bones["cloth_2"]=hc
+        
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.452,-0.078,0),Angle(90,-2.2,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2247,0.3638,0.0214),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(37.885,0.589,0),Angle(90,6,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2152,0.3485,1.148),{{1,Vector(0,0,2.7),Vector(0,0.885,-0.466)},{2,Vector(0,0,2.01),Vector(0,0.877,0.481)},{3,Vector(0,0,0.8),Vector(0,-0.97,0.245)},{4,Vector(0,0,2.6),Vector(0,-0.809,-0.588)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(7.359,-0.228,0),Angle(0,-2.2,0),"models/props_vehicles/tire001a_tractor.mdl","models/shadertest/shield",Color(71,77,116,255),Vector(0.035,0.0315,0.0195),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(11.98,-0.336,0),Angle(90,-0.8,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(71,77,116,255),Vector(0.21,0.34,0.92),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(22.969,-0.317,0),Angle(90,1.4,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(71,77,116,255),Vector(0.21,0.34,0.92),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(33.913,0.255,0),Angle(90,4.3,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(71,77,116,255),Vector(0.21,0.34,0.92),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(40.173,0.83,0),Angle(90,6,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2152,0.3485,1.148),{{1,Vector(0,0,0.5),Vector(0,-0.991,-0.131)},{2,Vector(0,0,0.1),Vector(0,-0.933,0.359)},{3,Vector(0,0,0.9),Vector(0,0.943,-0.333)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(28.446,-0.099,0),Angle(90,3.1,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(71,77,116,255),Vector(0.21,0.34,0.92),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.1,-0.18,0),Angle(90,-2.2,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(71,77,116,255),Vector(0.21,0.34,1.05),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(7.129,-0.22,0),Angle(90,-2.2,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2247,0.3638,0.0214),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.212,-0.069,0),Angle(0,-2.2,0),"models/props_vehicles/tire001a_tractor.mdl","models/shadertest/shield",Color(71,77,116,255),Vector(0.035,0.0315,0.0195),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(17.48,-0.38,0),Angle(90,-0.1,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(71,77,116,255),Vector(0.21,0.34,0.92),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.032,-0.062,0),Angle(90,-2.2,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2247,0.3638,0.0214),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(39.974,0.809,0),Angle(90,6,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2152,0.3485,1.148),{{1,Vector(0,0,1.4),Vector(0,-0.999,0.041)},{2,Vector(0,0,1.9),Vector(0,-0.826,0.563)},{3,Vector(0,0,2.5),Vector(0,0.865,-0.502)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(39.675,0.777,0),Angle(90,6,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2152,0.3485,1.148),{{1,Vector(0,0,2.5),Vector(0,0.885,-0.466)},{2,Vector(0,0,1.6),Vector(0,0.861,0.508)},{3,Vector(0,0,1.8),Vector(0,-0.754,0.657)},{4,Vector(0,0,2.4),Vector(0,-0.922,-0.388)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(7.589,-0.237,0),Angle(90,-2.2,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2247,0.3638,0.0214),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(39.974,0.809,0),Angle(90,6,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(71,77,116,255),Vector(0.21,0.34,1.12),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(39.377,0.746,0),Angle(90,6,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2152,0.3485,1.148),{{1,Vector(0,0,1),Vector(0,0.988,0.155)},{2,Vector(0,0,-0.8),Vector(0,-0.962,0.272)},{3,Vector(0,0,0.3),Vector(0,0.945,-0.326)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.02,-0.028,0),Angle(0,88,0),"models/sprops/geometry/fdisc_12.mdl","models/debug/debugwhite",Color(0,0,0,255),Vector(0.1275,0.075,0.075),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(43.822,1.213,0),Angle(90,6,0),"models/sprops/misc/fittings/cred_9_6_short.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.147,0.238,0.056),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(43.156,1.143,0),Angle(90,6,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2205,0.357,0.168),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(39.476,0.756,0),Angle(90,6,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.2152,0.3485,1.148),{{1,Vector(0,0,1.4),Vector(0,0.987,0.164)},{2,Vector(0,0,1.7),Vector(0,-0.792,0.611)},{3,Vector(0,0,2.3),Vector(0,0.722,-0.692)}}}
+    end
+    
+    if sword then
+        local parent = reftable["sword_real"]
+        local real_parent = reftable["sword_real"]
+        
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-2.814,0.314,0),Angle(0,-94.19,-90),"models/sprops/cylinders/size_3/cylinder_6x18.mdl","models/shadertest/shield",Color(80,80,84,255),Vector(0.3,0.14,0.6),{}}
+        local parent = hc
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-4.3),Angle(1,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.08,0,3.899),Angle(1.8,-180,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.047,0.01,5.66),Angle(-1.2,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.7473,0.5795,0.0915),{{1,Vector(-0.5,0,0),Vector(1,0,0)},{2,Vector(0.5,0,0),Vector(-1,0,0)},{3,Vector(0,1.2,0),Vector(0.342,0.94,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-0.5),Angle(1,180,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.608,0,5.66),Angle(-1.2,0,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.01,0.4,0.04),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.047,0,5.66),Angle(-1.2,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.7473,0.5795,0.0915),{{1,Vector(-0.5,0,0),Vector(-1,0,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,2.3),Angle(1,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.052,0,5.37),Angle(-1.2,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.3507,0.244,0.2745),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,0.1),Angle(1,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.058,0,5.66),Angle(-1.2,0,90),"models/sprops/geometry/fring_60.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.0765,0.105,0.06),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-1.6),Angle(1,180,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.068,-0.01,5.66),Angle(-1.2,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.7473,0.5795,0.0915),{{1,Vector(-0.5,0,0),Vector(1,0,0)},{2,Vector(0.5,0,0),Vector(-1,0,0)},{3,Vector(0,-1.2,0),Vector(-0.342,-0.94,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-5.4),Angle(1,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.05),Vector(0,0,1)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,4.5),Angle(1,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.1,0,4.998),Angle(2,-180,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,0.25),Vector(0.606,0,0.795)},{2,Vector(0.3,0,0),Vector(0.833,0,0.553)},{3,Vector(0,0,0.4),Vector(0,0,-1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-3.8),Angle(1,180,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.068,0,5.66),Angle(-1.2,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.7473,0.5795,0.0915),{{1,Vector(0.5,0,0),Vector(1,0,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.02,0,0.6),Angle(1.2,-180,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.047,-0.01,5.66),Angle(-1.2,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.7473,0.5795,0.0915),{{1,Vector(-0.5,0,0),Vector(1,0,0)},{2,Vector(0.5,0,0),Vector(-1,0,0)},{3,Vector(0,-1.2,0),Vector(0.342,-0.94,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-1),Angle(1,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,0),Angle(-1,0,0),"models/sprops/cylinders/size_3/cylinder_6x18.mdl","models/shadertest/shield",Color(80,80,84,255),Vector(0.3,0.14,0.6),{{1,Vector(0,0,0),Vector(-0.985,0,0.174)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0.472,0,5.671),Angle(-1.2,0,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.01,0.4,0.04),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.587,0,5.649),Angle(-1.2,0,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.01,0.4,0.04),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.06,0,2.799),Angle(1.6,-180,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-4.9),Angle(1,180,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.357,1.16,5.654),Angle(-0.41,-70,1.13),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.01,0.15,0.04),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,1.2),Angle(1,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,3.4),Angle(1,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-2.1),Angle(1,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.048,0,5.22),Angle(-1.2,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","models/shadertest/shield",Color(142,126,98,255),Vector(0.3525,0.2452,0.1992),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.005,0,-5.69),Angle(0.9,0,0),"models/sprops/geometry/sphere_6.mdl","models/shadertest/shield",Color(79,66,53,255),Vector(0.3058,0.1946,0.0278),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-5.39),Angle(0.9,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.3135,0.2138,0.2138),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.04,0,1.699),Angle(1.4,-180,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.049,0,5.24),Angle(88.8,0,0),"models/props_vehicles/tire001a_tractor.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.0333,0.0227,0.0324),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.068,0.01,5.66),Angle(-1.2,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.7473,0.5795,0.0915),{{1,Vector(-0.5,0,0),Vector(1,0,0)},{2,Vector(0.5,0,0),Vector(-1,0,0)},{3,Vector(0,1.2,0),Vector(-0.342,0.94,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0.242,-1.16,5.666),Angle(-0.41,-70,1.13),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.01,0.15,0.04),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.357,-1.16,5.654),Angle(-0.41,70,-1.13),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.01,0.15,0.04),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-2.7),Angle(1,180,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-3.2),Angle(1,0,0),"models/sprops/cylinders/size_3/cylinder_6x3.mdl","sprops/sprops_plastic",Color(237,241,244,255),Vector(0.3063,0.1838,0.8575),{{1,Vector(0,0,1),Vector(-0.254,0,-0.967)},{2,Vector(0,0,0.25),Vector(0.606,0,0.795)},{3,Vector(-0.07,0,0.5),Vector(0.819,0,-0.574)},{4,Vector(0.3,0,0),Vector(0.833,0,0.553)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0.242,1.16,5.666),Angle(-0.41,70,-1.13),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(118,87,59,255),Vector(0.01,0.15,0.04),{}}
+        
+        
+        
+        local parent = reftable["sword_real"]
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,0),Angle(0,0,0),"models/pac/default.mdl","",Color(255,255,255,255),Vector(0,0,0),{}}
+        local parent = hc
+        
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.551,-0.486,0),Angle(90,-99.8,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.0805),{{1,Vector(0,-1.7,0),Vector(0,0.623,-0.783)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.574,-0.799,0),Angle(0,177.5,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(68,74,80,255),Vector(0.9,0.44,0.07),{{1,Vector(0,-0.59,0),Vector(0,-1,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.5,0.806,0),Angle(90,87.7,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/shadertest/shield",Color(116,104,88,255),Vector(0.0945,0.385,0.0175),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.757,-0.328,0),Angle(-90,102.9,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.098),{{1,Vector(0,0,0),Vector(0,-1,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.267,-0.499,-0.1),Angle(0,-2.3,-11.8),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(116,104,88,255),Vector(0.25,0.16,0.03),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.267,-0.499,0.1),Angle(0,-2.3,11.8),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(116,104,88,255),Vector(0.25,0.16,0.03),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.278,-0.45,0),Angle(0,-2.3,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(116,104,88,255),Vector(0.25,0.18,0.03),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.6,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(133,153,169,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,-1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.633,0.559,0),Angle(90,87.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(71,79,87,255),Vector(0.07,1.8095,0.0175),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.59,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props_pipes/pipesystem01a_skin1",Color(215,221,228,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.31,0.35,0),Angle(0,-2.3,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/shadertest/shield",Color(116,104,88,255),Vector(0.25,0.14,0.095),{}}
+    
+    
+        local parent = reftable["sword_real"]
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(5.392,-0.35,0),Angle(0,1.72,0),"models/pac/default.mdl","",Color(255,255,255,255),Vector(0,0,0),{}}
+        local parent = hc
+        
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.59,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props_pipes/pipesystem01a_skin1",Color(215,221,228,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.633,0.559,0),Angle(90,87.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(71,79,87,255),Vector(0.07,1.8095,0.0175),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.551,-0.486,0),Angle(90,-99.8,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.0805),{{1,Vector(0,-1.7,0),Vector(0,0.623,-0.783)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.574,-0.799,0),Angle(0,177.5,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(68,74,80,255),Vector(0.9,0.44,0.07),{{1,Vector(0,-0.59,0),Vector(0,-1,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.6,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(133,153,169,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,-1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.757,-0.328,0),Angle(-90,102.9,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.098),{{1,Vector(0,0,0),Vector(0,-1,0)}}}
+    
+    
+        local parent = reftable["sword_real"]
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(10.774,-0.483,0),Angle(0,2.62,0),"models/pac/default.mdl","",Color(255,255,255,255),Vector(0,0,0),{}}
+        local parent = hc
+        
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.59,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props_pipes/pipesystem01a_skin1",Color(215,221,228,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.633,0.559,0),Angle(90,87.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(71,79,87,255),Vector(0.07,1.8095,0.0175),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.551,-0.486,0),Angle(90,-99.8,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.0805),{{1,Vector(0,-1.7,0),Vector(0,0.623,-0.783)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.574,-0.799,0),Angle(0,177.5,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(68,74,80,255),Vector(0.9,0.44,0.07),{{1,Vector(0,-0.59,0),Vector(0,-1,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.6,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(133,153,169,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,-1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.757,-0.328,0),Angle(-90,102.9,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.098),{{1,Vector(0,0,0),Vector(0,-1,0)}}}
+    
+    
+        local parent = reftable["sword_real"]
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(16.168,-0.536,0),Angle(0,3.6,0),"models/pac/default.mdl","",Color(255,255,255,255),Vector(0,0,0),{}}
+        local parent = hc
+        
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.59,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props_pipes/pipesystem01a_skin1",Color(215,221,228,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.633,0.559,0),Angle(90,87.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(71,79,87,255),Vector(0.07,1.8095,0.0175),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.551,-0.486,0),Angle(90,-99.8,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.0805),{{1,Vector(0,-1.7,0),Vector(0,0.623,-0.783)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.574,-0.799,0),Angle(0,177.5,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(68,74,80,255),Vector(0.9,0.44,0.07),{{1,Vector(0,-0.59,0),Vector(0,-1,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.6,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(133,153,169,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,-1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.757,-0.328,0),Angle(-90,102.9,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.098),{{1,Vector(0,0,0),Vector(0,-1,0)}}}
+    
+    
+        local parent = reftable["sword_real"]
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(21.57,-0.579,0),Angle(0,5.8,0),"models/pac/default.mdl","",Color(255,255,255,255),Vector(0,0,0),{}}
+        local parent = hc
+        
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.59,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props_pipes/pipesystem01a_skin1",Color(215,221,228,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.633,0.559,0),Angle(90,87.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(71,79,87,255),Vector(0.07,1.8095,0.0175),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.551,-0.486,0),Angle(90,-99.8,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.0805),{{1,Vector(0,-1.7,0),Vector(0,0.623,-0.783)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.574,-0.799,0),Angle(0,177.5,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(68,74,80,255),Vector(0.9,0.44,0.07),{{1,Vector(0,-0.59,0),Vector(0,-1,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.6,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(133,153,169,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,-1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.757,-0.328,0),Angle(-90,102.9,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.098),{{1,Vector(0,0,0),Vector(0,-1,0)}}}
+    
+    
+        local parent = reftable["sword_real"]
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(26.964,-0.303,0),Angle(0,6.31,0),"models/pac/default.mdl","",Color(255,255,255,255),Vector(0,0,0),{}}
+        local parent = hc
+        
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.59,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props_pipes/pipesystem01a_skin1",Color(215,221,228,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.633,0.559,0),Angle(90,87.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(71,79,87,255),Vector(0.07,1.8095,0.0175),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.551,-0.486,0),Angle(90,-99.8,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.0805),{{1,Vector(0,-1.7,0),Vector(0,0.623,-0.783)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.574,-0.799,0),Angle(0,177.5,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(68,74,80,255),Vector(0.9,0.44,0.07),{{1,Vector(0,-0.59,0),Vector(0,-1,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.583,-0.6,0),Angle(90,-92.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(133,153,169,255),Vector(0.07,1.8095,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,-1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.757,-0.328,0),Angle(-90,102.9,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.098),{{1,Vector(0,0,0),Vector(0,-1,0)}}}
+    
+        
+        local parent = reftable["sword_real"]
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(32.344,-0.026,0),Angle(0,7.51,0),"models/pac/default.mdl","",Color(255,255,255,255),Vector(0,0,0),{}}
+        local parent = hc
+        
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(7.634,0.504,0),Angle(90,87.39,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(71,79,87,255),Vector(0.07,2.4045,0.0175),{{1,Vector(0,-2.5,0),Vector(0,1,0)},{2,Vector(0.41,0.8,0),Vector(-0.994,0.105,0)},{3,Vector(-0.41,0.8,0),Vector(0.994,0.105,0)},{4,Vector(0,0,-0.15),Vector(0,0.042,0.999)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(8.302,0.39,-0.03),Angle(0,5.8,-180),"models/sprops/misc/cones/size_1/cone_12x6.mdl","models/props_debris/plasterwall040c",Color(90,96,108,255),Vector(0.4025,0.196,0.035),{{1,Vector(0.2,0,0),Vector(0.997,0.08,0)},{2,Vector(0.2,0,0),Vector(-0.099,0.995,0)},{3,Vector(0,0,0.05),Vector(0,0,1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(5.864,0.593,0),Angle(90,87.5,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(71,79,87,255),Vector(0.07,1.8095,0.0175),{}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.757,-0.328,0),Angle(-90,102.9,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.098),{{1,Vector(0,0,0),Vector(0,-1,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(8.302,0.39,0),Angle(-0.05,5.8,-180),"models/sprops/misc/cones/size_1/cone_12x6.mdl","models/props/CS_militia/milceil001",Color(255,255,255,255),Vector(0.4025,0.196,0.0525),{{1,Vector(0.2,0,0),Vector(0.997,0.08,0)},{2,Vector(0.2,0,0),Vector(-0.099,0.995,0)},{3,Vector(0,0,0.08),Vector(0,0,-1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(7.634,0.503,0),Angle(90,87.35,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(216,216,216,255),Vector(0.07,2.4045,0.0175),{{1,Vector(0,-2.47,0),Vector(0,-1,0)},{2,Vector(0.41,0.8,0),Vector(-0.994,0.105,0)},{3,Vector(-0.41,0.8,0),Vector(0.994,0.105,0)},{4,Vector(0,0,-0.15),Vector(0,0.042,0.999)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.573,-0.349,0),Angle(90,-95.3,0),"models/Gibs/HGIBS_spine.mdl","models/props_pipes/pipesystem01a_skin1",Color(91,103,116,255),Vector(0.1207,1.1795,0.0805),{{1,Vector(0,-1.7,0),Vector(0,0.623,-0.783)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(8.302,0.39,0.03),Angle(0,5.8,0),"models/sprops/misc/cones/size_1/cone_12x6.mdl","models/props_debris/plasterwall040c",Color(90,96,108,255),Vector(0.4025,0.196,0.035),{{1,Vector(0.2,0,0),Vector(0.997,-0.08,0)},{2,Vector(0.2,0,0),Vector(-0.099,-0.995,0)},{3,Vector(0,0,0.05),Vector(0,0,1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.229,-0.43,0),Angle(90,-88.7,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(133,153,169,255),Vector(0.07,1.5575,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,-1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.194,-0.779,0),Angle(0,177.5,0),"models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl","models/props/de_nuke/nukconcretewalla",Color(68,74,80,255),Vector(0.78,0.44,0.07),{{1,Vector(0,-0.73,0),Vector(0.064,-0.998,0)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.209,-0.42,0),Angle(90,-88.7,0),"models/sprops/triangles/regular/etri_6x6.mdl","models/props_pipes/pipesystem01a_skin1",Color(215,221,228,255),Vector(0.07,1.5575,0.1522),{{1,Vector(0,0,0.1),Vector(0,0,1)}}}
+        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(8.302,0.39,0),Angle(0.05,5.8,0),"models/sprops/misc/cones/size_1/cone_12x6.mdl","models/props/CS_militia/milceil001",Color(255,255,255,255),Vector(0.4025,0.196,0.0525),{{1,Vector(0.2,0,0),Vector(0.997,-0.08,0)},{2,Vector(0.2,0,0),Vector(-0.099,-0.995,0)},{3,Vector(0,0,0.08),Vector(0,0,-1)}}}
+    end
+    -- /\ /\ /\ INSERT CODE INSIDE HERE /\ /\ /\
+
+    pthl.createHolos(hc,ht,false,size,showBones)
+    
+    local Animations={}
+    local AnimationNames={}
+    ac=1 AnimationNames[ac] = "idle"                                Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_IDLE_01}
+    ac=ac+1 AnimationNames[ac] = "atk_attack_01"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_01,ANIM_ATTACK_01_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_attack_02"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_02,ANIM_ATTACK_02_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_attack_03"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_03,ANIM_ATTACK_03_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_attack_04"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_04,ANIM_ATTACK_04_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_attack_05"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_05,ANIM_ATTACK_05_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_attack_06"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_06,ANIM_ATTACK_06_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_attack_07"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_07,ANIM_ATTACK_07_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_rapid_slash"                  Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_RAPID_SLASH,ANIM_RAPID_SLASH_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_aerial_rave"                  Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_AERIAL_RAVE,ANIM_ATTACK_04_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_down"                         Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_FORCE_EDGE_01,ANIM_ATTACK_04_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_judgement_cut"                Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_JUDGEMENT_CUT_START,ANIM_JUDGEMENT_CUT,ANIM_JUDGEMENT_CUT_SHEATH}
+    
+    local Sounds={}
+    
+    Sounds["swingSoundYamato"]={"npc/vort/claw_swing2.wav"}
+    Sounds["hitSoundYamato"]={"weapons/knife/knife_hit1.wav","weapons/knife/knife_hit2.wav","weapons/knife/knife_hit3.wav","weapons/knife/knife_hit4.wav"}
+    Sounds["swingSoundYamatoSheath"]={")weapons/slam/throw.wav"}
+    Sounds["hitSoundYamatoSheath"]={"physics/wood/wood_plank_impact_hard2.wav"}
+    Sounds["sheathSoundYamato"]={"ambient/voices/citizen_punches2.wav"}
+    
+    Sounds["judgementCutSound"]={"ambient/levels/citadel/weapon_disintegrate3.wav"}
+    
+    Sounds["blockingSound"]={"weapons/knife/knife_hitwall1.wav"}
+    Sounds["stepSound"]={"physics/body/body_medium_impact_soft3.wav"}
+    Sounds["doubleJumpSound"]={"physics/flesh/flesh_impact_hard2.wav"}
+    Sounds["grabWeaponSound"]={"physics/metal/weapon_impact_soft3.wav"}
+    Sounds["grabWeaponSound2"]={"physics/metal/weapon_footstep1.wav"}
+    
+    function swingSoundYamato()
+        local pitch = math.random(15,20)*10
+        owner():emitSound(Sounds["swingSoundYamato"][math.random(table.count(Sounds["swingSoundYamato"]))],50,pitch,CHANNEL_AUTO)
+    end
+    function hitSoundYamato()
+        owner():emitSound(Sounds["hitSoundYamato"][math.random(table.count(Sounds["hitSoundYamato"]))],50,math.random(90,110),CHANNEL_AUTO)
+    end
+    function swingSoundYamatoSheath()
+        local pitch = math.random(15,20)*10
+        owner():emitSound(Sounds["swingSoundYamatoSheath"][math.random(table.count(Sounds["swingSoundYamatoSheath"]))],50,pitch,CHANNEL_AUTO)
+    end
+    function hitSoundYamatoSheath()
+        owner():emitSound(Sounds["hitSoundYamatoSheath"][math.random(table.count(Sounds["hitSoundYamatoSheath"]))],50,math.random(90,110),CHANNEL_AUTO)
+    end
+    function sheathSoundYamato()
+        owner():emitSound(Sounds["sheathSoundYamato"][math.random(table.count(Sounds["sheathSoundYamato"]))],50,150,30,CHANNEL_AUTO)
+    end
+    
+    
+    --Judgement Cut
+    function judgementCutSound()
+        owner():emitSound(Sounds["judgementCutSound"][math.random(table.count(Sounds["judgementCutSound"]))],50,100,CHANNEL_AUTO)
+    end
+    
+    --Misc
+    function blockingSound()
+        owner():emitSound(Sounds["blockingSound"][math.random(table.count(Sounds["blockingSound"]))],50,100,CHANNEL_AUTO)
+    end
+    function stepSound()
+        owner():emitSound(Sounds["stepSound"][math.random(table.count(Sounds["stepSound"]))],50,100,CHANNEL_AUTO)
+    end
+    function doubleJumpSound()
+        owner():emitSound(Sounds["doubleJumpSound"][math.random(table.count(Sounds["doubleJumpSound"]))],50,100,CHANNEL_AUTO)
+    end
+    function grabWeaponSound()
+        owner():emitSound(Sounds["grabWeaponSound"][math.random(table.count(Sounds["grabWeaponSound"]))],50,100,CHANNEL_AUTO)
+    end
+    function grabWeaponSound2()
+        owner():emitSound(Sounds["grabWeaponSound2"][math.random(table.count(Sounds["grabWeaponSound2"]))],50,100,CHANNEL_AUTO)
+    end
+    
+    local Frame = 1
+    local AnimationData = Animations[AnimationNames[1]]
+    local Animation = AnimationData[2]
+    local AnimationName = AnimationData[1]
+    local FrameTime = 0
+    local FrameRate = 0
+    
+    local CT = 0
+    
+    local Sheathed = true
+    local first = false
+    local sword_in_hand = nil
+    local sheath = nil
+    local sword = nil
+    local delay = false
+    local Sheathing = false
+    local judgement_cut_active = false
+    local judgement_cut_ready = false
+    local judgement_cut_count = 0
+    local block_judgement_cut = false
+    local m1downct = 0
+    
+    hook.add("net","",function(name,len,ply)
+        if name == "double_jump_snd" then
+            doubleJumpSound()
+        end
+        if name == "send_anim" then
+            if owner() != player() then
+                --AnimationData = Animations[net.readString()]
+            end
+        end
+    end)
+    
+    function nextAnim(current)
+        if Sheathing then return end
+        if current == "atk_attack_01" then
+            AnimationData=Animations["atk_attack_02"]
+            attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-35+180)},false,0.5})
+            swingSoundYamatoSheath()
+        end
+        if current == "atk_attack_02" then
+            AnimationData=Animations["atk_attack_04"]
+            attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-35)},true,1.5})
+            swingSoundYamato()
+        end
+        if current == "atk_attack_04" then
+            AnimationData=Animations["atk_attack_05"]
+            attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45+180)},true,2})
+            swingSoundYamato()
+        end
+        if current == "atk_attack_05" then
+            if owner():isOnGround() then
+                AnimationData=Animations["atk_attack_06"]
+                timer.simple(0.1,function()
+                    attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,0)},true,1.5})
+                end)
+                swingSoundYamato()
+            else
+                AnimationData=Animations["atk_aerial_rave"]
+                attack_fx({"simple_noviewpunch",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-125)},true})
+                swingSoundYamato()
+                timer.simple(0.05,function()
+                    attack_fx({"simple_noviewpunch",{owner():getEyePos()+owner():getAimVector()*45+owner():getEyeAngles():getRight()*2*0.5,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-120)},true})
+                    swingSoundYamato()
+                end)
+                timer.simple(0.12,function()
+                    attack_fx({"simple_noviewpunch",{owner():getEyePos()+owner():getAimVector()*45+owner():getEyeAngles():getRight()*-1.5*0.5,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-127)},true})
+                    swingSoundYamato()
+                end)
+                timer.simple(0.2,function()
+                    attack_fx({"simple_noviewpunch",{owner():getEyePos()+owner():getAimVector()*45+owner():getEyeAngles():getRight()*-0.7*0.5,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-124)},true})
+                end)
+                getviewpunch[1]=timer.curtime()
+                getviewpunch[2]=Vector(1,-0.1,0):rotateAroundAxis(Vector(1,0,0),-125):getAngle()
+                net.start("goup_small")
+                net.send()
+            end
+        end
+        if AnimationData[1] != current then
+            Frame = 1
+            FrameTime = 0
+            delay = false
+            if not owner():isOnGround() then
+                net.start("float")
+                net.send()
+            end
+            timer.stop("sheath")
+        end
+    end
+    
+    function heavyAttack(current)
+        if Sheathing then return end
+        if owner():keyDown(IN_KEY.FORWARD) and owner():isSprinting() then
+            if owner():isOnGround() then
+                if current != "atk_rapid_slash" then
+                    AnimationData=Animations["atk_rapid_slash"]
+                    timer.simple(0.3,function()
+                        attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,0)},true,2})
+                    end)
+                    swingSoundYamato()
+                    net.start("dash")
+                    net.send()
+                    stepSound()
+                    grabWeaponSound()
+                end
+            else
+                if current != "atk_down" then
+                    AnimationData=Animations["atk_down"]
+                    attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,90)},true,2})
+                    swingSoundYamato()
+                    net.start("godown")
+                    net.send()
+                    grabWeaponSound()
+                end
+            end
+        end
+        if owner():keyDown(IN_KEY.BACK) and owner():isSprinting() and owner():isOnGround() and current != "atk_attack_07" then
+            AnimationData=Animations["atk_attack_07"]
+            timer.simple(0.2,function()
+                attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-90)},true,2})
+            end)
+            swingSoundYamato()
+            net.start("goup")
+            net.send()
+            grabWeaponSound()
+        end
+        if current == "atk_attack_02" and not (owner():keyDown(IN_KEY.SPEED) and (owner():keyDown(IN_KEY.BACK) or owner():keyDown(IN_KEY.FORWARD))) and current != "atk_attack_03" then
+            AnimationData=Animations["atk_attack_03"]
+            attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-30)},true,2})
+            swingSoundYamato()
+            net.start("short_dash")
+            net.send()
+        end
+        if AnimationData[1] != current then
+            Frame = 1
+            FrameTime = 0
+            delay = false
+            timer.stop("sheath")
+        end
+    end
+    local jiggle1 = Angle()
+    
+    local attack_fx_simple = {}
+    local attack_fx_judgement_cut = {}
+    local attack_fx_judgement_cut_orb = {}
+    
+    getviewpunch = {timer.curtime(),Angle()}
+    
+    function create_orb()
+        local orb_size = 45
+        local tr = owner():getEyeTrace()
+        local pos = tr.HitPos+tr.HitNormal*orb_size
+        local t = {}
+        t.fx_root = hologram.create(pos,Angle(),"models/sprops/geometry/sphere_12.mdl",Vector())
+        t.fx_root:setMaterial("models/debug/debugwhite")
+        t.fx_root:setColor(Color(35*0.6,50*0.6,70*0.6,100))
+        t.fx_root:suppressEngineLighting(true)
+        t.fx_root:setRenderMode(RENDERMODE.WORLDGLOW)
+        
+        t.holos = {}
+        local parent = t.fx_root
+        for i = 1, 12 do
+            t.holos[i] = hologram.create(parent:localToWorld(Vector(0,0,math.random(orb_size*0.25,orb_size*0.9)):getRotated(Angle(math.random(-360,360),math.random(-360,360),math.random(-360,360)))),
+            parent:localToWorldAngles(Angle(math.random(-360,360),math.random(-360,360),math.random(-360,360))),
+            "models/sprops/geometry/sphere_12.mdl",
+            Vector())
+            t.holos[i]:setMaterial("models/debug/debugwhite")
+            t.holos[i]:setColor(Color(125,255,255))
+            t.holos[i]:suppressEngineLighting(true)
+        end
+        t.scale = orb_size
+        t.creation_time = timer.curtime()
+        table.insert(attack_fx_judgement_cut_orb,1,t)
+    end
+    
+    function scale_3d(pos)
+        local POSTOSCREEN = (pos+Vector(0,0,100):getRotated(owner():getEyeAngles())):toScreen()
+        local POSTOSCREEN2 = pos:toScreen()
+        return Vector(POSTOSCREEN["x"],POSTOSCREEN["y"],0):getDistance(Vector(POSTOSCREEN2["x"],POSTOSCREEN2["y"],0))
+    end
+    
+    function attack_fx(data)
+        if player() ~= owner() then return end
+        local type = data[1]
+        if type == "simple" or type == "simple_noviewpunch" then
+            local pos, ang = data[2][1], data[2][2]
+            local blade_out = data[3]
+            
+            local t = {}
+            t.fx_root = hologram.create(pos, ang, "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            t.fx_root:setParent(owner():getActiveWeapon())
+            t.rotation = ang.roll
+            t.sword_out = blade_out
+            t.color = blade_out and Color(125,255,255) or Color(65,65,65,45)
+            t.creation_time = timer.curtime()
+            table.insert(attack_fx_simple,1,t)
+            if type == "simple" then
+                getviewpunch[1]=timer.curtime()
+                getviewpunch[2]=Vector(1,-0.1*data[4],0):rotateAroundAxis(Vector(1,0,0),t.rotation):getAngle()
+            end
+        elseif type == "judgement_cut" then
+            local pos, ang = data[2][1], data[2][2]
+            
+            local t = {}
+            t.fx_root = hologram.create(pos, ang, "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            t.fx_root:setParent(owner():getActiveWeapon())
+            t.rotation = ang.roll
+            t.creation_time = timer.curtime()
+            table.insert(attack_fx_judgement_cut,1,t)
+            getviewpunch[1]=timer.curtime()
+            getviewpunch[2]=Vector(1,-0.1,0):rotateAroundAxis(Vector(1,0,0),t.rotation):getAngle()
+            
+            create_orb()
+        end
+    end
+    local sheath_models = {}
+    local setwalkspeedct = 0
+    local movement_check = false
+    if player() == owner() then
+        hook.add("HUDShouldDraw", "", function(str)
+            if str == "CHudCrosshair" then
+                return false
+            end
+            if str == "CHudHealth" then
+                return false
+            end
+            if str == "CHudBattery" then
+                return false
+            end
+        end)
+        if not STATIONARY then
+            hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+                local time_og = math.clamp((timer.curtime() - getviewpunch[1])*1.5,0,1)
+                local time = math.easeInBack(math.clamp(1 - time_og,0,1))
+                local viewpunch = math.slerpQuaternion(Angle():getQuaternion(), getviewpunch[2]:getQuaternion()*0.5, math.sin(math.rad(time*180))):getEulerAngle()
+                return {
+                    angles = ang + viewpunch,
+                    origin = owner():getShootPos()
+                }
+            end)
+        end
+        enableHud(owner(), true)
+        
+        slash_mat_overlay = material.create("UnlitGeneric")
+        slash_mat_overlay:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/3nuc22yi5mvyg0y86l1rt/slash.png?rlkey=8sdhd5bf3mwwhnzx2hk7l2zzo&dl=1", nil, nil)
+        
+        slash_mat2_overlay = material.load("sprites/physbeam")
+        
+        orb_mat = material.load("sprites/blueflare1_noz_gmod")
+        
+        slash_mat3_overlay = material.load("sprites/physg_glow1")
+        
+        sheath_mat_overlay = material.load("sprites/light_ignorez")
+        
+        local w, h = render.getGameResolution()
+        
+        hook.add("DrawHUD", "", function()
+            if pthl.ready then
+                render.setMaterial(sheath_mat_overlay)
+                local time = math.clamp(1.5-(timer.curtime() - sheath_time)*12,0,1)*1.25
+                local pos = sheath:localToWorld(Vector(-2,0,0)):toScreen()
+                render.drawTexturedRectRotated(pos["x"], pos["y"], h*1.5*time, h*1*time, 15)
+                render.drawTexturedRectRotated(pos["x"], pos["y"], h*2*time, h*0.05*time, 0)
+                render.drawTexturedRectRotated(pos["x"], pos["y"], h*2*time, h*0.05*time, 30)
+                
+                render.setMaterial(orb_mat)
+                if #attack_fx_judgement_cut_orb > 0 then
+                    for i, t in pairs(attack_fx_judgement_cut_orb) do
+                        local root = t.fx_root
+                        if root then
+                            render.setColor(Color(200,225,255,255))
+                            local time = math.clamp(1-(timer.curtime() - t.creation_time)*1.25,0,1)
+                            
+                            local pos = root:getPos():toScreen()
+                            local scl = math.clamp((-1+math.sin(math.rad(time*180))*3)*1.5,0,1)*h*scale_3d(root:getPos())/1080*1.5
+                            render.drawTexturedRectRotated(pos["x"], pos["y"], scl, scl, 0)
+                        end
+                    end
+                end
+                
+                render.setMaterial(slash_mat_overlay)
+                if #attack_fx_simple > 0 then
+                    for i, t in pairs(attack_fx_simple) do
+                        local root = t.fx_root
+                        if root then
+                            render.setColor(Color(t.color.r,t.color.g,t.color.b))
+                            local time = math.clamp(1-(timer.curtime() - t.creation_time)*12,0,1)*3
+                            
+                            local pos = root:getPos():toScreen()
+                            render.drawTexturedRectRotated(pos["x"], pos["y"], h*3*time, h*1*time, t.rotation)
+                        end
+                        
+                    end
+                end
+                if #attack_fx_judgement_cut > 0 then
+                    for i, t in pairs(attack_fx_judgement_cut) do
+                        local root = t.fx_root
+                        if root then
+                            render.setColor(Color(125,255,255))
+                            local time = math.clamp(1-(timer.curtime() - t.creation_time)*12,0,1)*3
+                            
+                            local pos = root:getPos():toScreen()
+                            render.drawTexturedRectRotated(pos["x"], pos["y"], h*2*time, h*1*time, t.rotation)
+                        end
+                        
+                    end
+                end
+                
+                render.setMaterial(slash_mat2_overlay)
+                if #attack_fx_simple > 0 then
+                    for i, t in pairs(attack_fx_simple) do
+                        if t.sword_out == true then
+                            local root = t.fx_root
+                            if root then
+                                render.setColor(Color(t.color.r,t.color.g,t.color.b))
+                                local time = math.clamp(1-(timer.curtime() - t.creation_time)*12,0,1)*1
+                                
+                                local pos = root:getPos():toScreen()
+                                render.drawTexturedRectRotated(pos["x"], pos["y"], h*0.1*time, h*2, t.rotation+90)
+                            end
+                        end
+                    end
+                end
+                if #attack_fx_judgement_cut > 0 then
+                    for i, t in pairs(attack_fx_judgement_cut) do
+                        local root = t.fx_root
+                        if root then
+                            render.setColor(Color(125,255,255))
+                            local time = math.clamp(1-(timer.curtime() - t.creation_time)*12,0,1)*1
+                            
+                            local pos = root:getPos():toScreen()
+                            render.drawTexturedRectRotated(pos["x"], pos["y"], h*0.1*time, h*1, t.rotation+90)
+                        end
+                    end
+                end
+                
+                render.setMaterial(slash_mat3_overlay)
+                if #attack_fx_simple > 0 then
+                    for i, t in pairs(attack_fx_simple) do
+                        if t.sword_out == true then
+                            local root = t.fx_root
+                            if root then
+                                render.setColor(Color(t.color.r,t.color.g,t.color.b))
+                                local time = math.clamp(1-(timer.curtime() - t.creation_time)*12,0,1)*1
+                                
+                                local pos = root:getPos():toScreen()
+                                render.drawTexturedRectRotated(pos["x"], pos["y"], h*1*time, h*4, t.rotation+90)
+                            end
+                        end
+                    end
+                end
+                if #attack_fx_judgement_cut > 0 then
+                    for i, t in pairs(attack_fx_judgement_cut) do
+                        local root = t.fx_root
+                        if root then
+                            render.setColor(Color(125,255,255))
+                            local time = math.clamp(1-(timer.curtime() - t.creation_time)*12,0,1)*1
+                            
+                            local pos = root:getPos():toScreen()
+                            render.drawTexturedRectRotated(pos["x"], pos["y"], h*1*time, h*2, t.rotation+90)
+                        end
+                    end
+                end
+                
+            end
+        end)
+    end
+    
+    local lastAnimationName = ""
+    
+    hook.add("think","main",function()
+        if pthl.ready then
+            local cloth1 = pthl.holos[bones["cloth_1"]]
+            local cloth2 = pthl.holos[bones["cloth_2"]]
+            
+            if first != true then
+                first = true
+                
+                sword_in_hand = pthl.holos[reftable["sword"]]
+                sheath = pthl.holos[reftable["sheath"]]
+                sword = pthl.holos[reftable["sword_real"]]
+                root = pthl.holos[reftable["root"]]
+                if STATIONARY != true then
+                    root:setParent(owner():getActiveWeapon())
+                end
+                
+                if cloth1 and cloth1 != nil and cloth1:isValid() and (cloth1:getBoneCount() >= 8) then
+                    cloth1:manipulateBonePosition(2, Vector(0,0,8))
+                    cloth1:manipulateBonePosition(3, Vector(0,0,8))
+                    cloth1:manipulateBonePosition(4, Vector(0,0,8))
+                    cloth1:manipulateBonePosition(5, Vector(0,0,8))
+                    cloth1:manipulateBonePosition(6, Vector(0,0,8))
+                    cloth1:manipulateBonePosition(7, Vector(0,0,8))
+                    cloth1:manipulateBonePosition(8, Vector(0,0,8))
+                end
+                if cloth2 and cloth2 != nil and cloth2:isValid() and (cloth2:getBoneCount() >= 8) then
+                    cloth2:manipulateBonePosition(2, Vector(0,0,8))
+                    cloth2:manipulateBonePosition(3, Vector(0,0,8))
+                    cloth2:manipulateBonePosition(4, Vector(0,0,8))
+                    cloth2:manipulateBonePosition(5, Vector(0,0,8))
+                    cloth2:manipulateBonePosition(6, Vector(0,0,8))
+                    cloth2:manipulateBonePosition(7, Vector(0,0,8))
+                    cloth2:manipulateBonePosition(8, Vector(0,0,8))
+                end
+                
+                sheath_time = timer.curtime()
+                sheath_fx_done = false
+            end
+            if #attack_fx_judgement_cut_orb > 0 then
+                for i, t in pairs(attack_fx_judgement_cut_orb) do
+                    local root = t.fx_root
+                    if root then
+                        local time = math.easeInOutSine(math.clamp((timer.curtime() - t.creation_time)*2,0,2)/2)*2
+                        local scale = t.scale*2
+                        root:setScale(Vector(-scale*math.clamp((math.sin(math.rad(time*90*1.25))*3),0,1))/12)
+                        if time > 3 then
+                            for i2, ent in pairs(t.holos) do
+                                ent:remove()
+                            end
+                            t.fx_root:remove()
+                            table.remove(attack_fx_judgement_cut_orb,i)
+                        else
+                            for i2, ent in pairs(t.holos) do
+                                local duration = 0.25
+                                local delay = 0.1
+                                
+                                local local_time = time - (i2 - 1) * delay
+                                
+                                local one_scale = 0
+                                
+                                if local_time >= 0 and local_time <= duration then
+                                    local progress = local_time / duration
+                                    one_scale = math.sin(progress * 3.14)
+                                elseif local_time > duration then
+                                    one_scale = 0
+                                end
+                                
+                                local scale_factor = one_scale
+                                ent:setScale(Vector(1*math.clamp(scale_factor*3,0,1), scale*scale_factor, 1*math.clamp(scale_factor*3,0,1))/12)
+                            end
+                        end
+                    end
+                end
+            end
+            if #attack_fx_simple > 0 then
+                for i, t in pairs(attack_fx_simple) do
+                    local time = timer.curtime() - t.creation_time
+                    if time > 1 then
+                        t.fx_root:remove()
+                        table.remove(attack_fx_simple,i)
+                    end
+                end
+            end
+            if #attack_fx_judgement_cut > 0 then
+                for i, t in pairs(attack_fx_judgement_cut) do
+                    local time = timer.curtime() - t.creation_time
+                    if time > 1 then
+                        t.fx_root:remove()
+                        table.remove(attack_fx_judgement_cut,i)
+                    end
+                end
+            end
+            if not sheath_fx_done then
+                local time = timer.curtime() - sheath_time
+                if time > 1 then
+                    sheath_fx_done = true
+                end
+            end
+            local c1_parent = cloth1:getParent()
+            
+            if c1_parent and c1_parent != nil and c1_parent:isValid() then
+                local up = Vector(0, 0, -1)
+                local forward = Angle(0,c1_parent:getUp():getAngle().yaw,0):getForward()
+                local right = forward:cross(up)
+                up = right:cross(forward)
+                
+                forward:normalize()
+                right:normalize()
+                up:normalize()
+                
+                local m = Matrix()
+                m:setForward(forward)
+                m:setRight(right)
+                m:setUp(up)
+                
+                jiggle1 = math.slerpQuaternion(jiggle1:getQuaternion(),c1_parent:worldToLocalAngles(m:getAngles()):getQuaternion(),0.05):getEulerAngle()
+                
+                cloth1:setAngles(c1_parent:localToWorldAngles(jiggle1+Angle(1,0,-5)))
+                
+                cloth2:setAngles(c1_parent:localToWorldAngles(jiggle1+Angle(-1,0,5)))
+            end
+            if STATIONARY != true then
+                root:setPos(owner():getEyePos()-Vector(0,0,25))
+                root:setAngles(Angle(0,owner():getEyeAngles().yaw,0))
+            end
+            DELTA = timer.curtime() - CT
+            
+            if AnimationData then
+                AnimationName = AnimationData[1]
+                --[[
+                if player() == owner() and (AnimationName != lastAnimationName) then
+                    if AnimationName and AnimationName != "" then
+                        net.start("send_anim")
+                        net.writeString(lastAnimationName)
+                        net.send()
+                    end
+                end
+                lastAnimationName = AnimationName--]]
+                if AnimationName == "atk_judgement_cut" then
+                    Animation = AnimationData[Sheathing and 4 or (judgement_cut_ready and 3 or 2)] and AnimationData[Sheathing and 4 or (judgement_cut_ready and 3 or 2)] or Animations[AnimationNames[1]]
+                else
+                    Animation = AnimationData[Sheathing and 3 or 2] and AnimationData[Sheathing and 3 or 2] or Animations[AnimationNames[1]]
+                end
+                
+                if Animation then FrameCount = #Animation end
+                if Animation and Animation[Frame] then
+                    for I = 1, 9 do
+                        LastFrame=Animation[math.clamp(Frame,1,FrameCount)][I]
+                        NextFrame=Animation[((math.clamp(Frame+1,1,FrameCount))==FrameCount+1) and 1 or math.clamp(Frame+1,1,FrameCount)][I]
+                        holo = pthl.holos[bones[I]]
+                        
+                        mix = FrameTime/FrameRate
+                        
+                        holo:setAngles(holo:getParent():localToWorldAngles(math.slerpQuaternion(LastFrame:getQuaternion(),
+                        NextFrame:getQuaternion(),
+                        mix):getEulerAngle()))
+                    end
+                    
+                    FrameRate = Animation[math.clamp(Frame,1,FrameCount)][10]
+                    if judgement_cut_ready then
+                        FrameTimeAdd = Sheathing and 40 or 60
+                    else
+                        if AnimationName == "atk_attack_03" then
+                            FrameTimeAdd = Sheathing and 45 or 125
+                        elseif AnimationName == "atk_attack_04" or AnimationName == "atk_attack_05" then
+                            FrameTimeAdd = Sheathing and 55 or 250
+                        elseif AnimationName == "atk_rapid_slash" then
+                            FrameTimeAdd = Sheathing and 100 or 70
+                        elseif AnimationName == "atk_attack_07" then
+                            FrameTimeAdd = Sheathing and 70 or 100
+                        elseif AnimationName == "atk_aerial_rave" then
+                            FrameTimeAdd = Sheathing and 70 or 100
+                        elseif AnimationName == "atk_down" then
+                            FrameTimeAdd = Sheathing and 70 or 100
+                        elseif AnimationName == "atk_attack_01" then
+                            FrameTimeAdd = Sheathing and 65 or 65
+                        elseif AnimationName == "atk_attack_02" then
+                            FrameTimeAdd = Sheathing and 65 or 65
+                        elseif AnimationName == "atk_attack_06" then
+                            FrameTimeAdd = Sheathing and 50 or 80
+                        else
+                            FrameTimeAdd = 45
+                        end
+                    end
+                    FrameTime=FrameTime+FrameTimeAdd*DELTA
+                    FrameTime=math.clamp(FrameTime,0,FrameRate)
+                    
+                    Sheathed = not Animation[math.clamp(Frame+1,1,FrameCount)][11]
+                    
+                    if Sheathed then
+                        if is_in != true then
+                            is_in = true
+                            sheathSoundYamato()
+                            
+                            sheath_time = timer.curtime()
+                            sheath_fx_done = false
+                        end
+                        sword:setPos(sheath:localToWorld(Vector(0,0,0)))
+                        sword:setAngles(sheath:localToWorldAngles(Angle(0,0,0)))
+                    else
+                        is_in = false
+                        sword:setPos(sword_in_hand:localToWorld(Vector(0,0,0)))
+                        sword:setAngles(sword_in_hand:localToWorldAngles(Angle(0,0,0)))
+                    end
+                    
+                    if AnimationName != "idle" then
+                        if FrameTime>=FrameRate then
+                            FrameTime=0
+                            Frame=Frame+1
+                            
+                            if Frame <= 0 then
+                                Frame= #Animation
+                            end
+                            
+                            if Frame > #Animation then
+                                if Sheathing then
+                                    AnimationData=Animations[AnimationNames[1]]
+                                    Frame=1
+                                    Sheathing=false
+                                    delay = false
+                                    judgement_cut_active = false
+                                    judgement_cut_ready = false
+                                else
+                                    Frame = #Animation
+                                    if judgement_cut_active then judgement_cut_ready = true end
+                                    if AnimationName == "atk_attack_04" and owner():isOnGround() then
+                                        nextAnim(AnimationName)
+                                    elseif AnimationName == "atk_attack_07" then
+                                        Sheathing=true
+                                        Frame=1
+                                        FrameTime = 0
+                                    elseif delay != true then
+                                        delay = true
+                                        timer.create("sheath",(AnimationName == "atk_attack_05" and 0.6 or 0.3)-(AnimationName == "atk_aerial_rave" and 0.3 or 0),1,function()
+                                            Sheathing=true
+                                            Frame=1
+                                            FrameTime = 0
+                                        end)
+                                    end
+                                end
+                            end
+                        else
+                            
+                        end
+                    else
+                        
+                    end
+                    if judgement_cut_active then
+                        if timer.curtime() - m1downct > 3 then
+                            Sheathing=true
+                            Frame=1
+                            FrameTime = 0
+                            judgement_cut_active = false
+                            block_judgement_cut = true
+                            net.start("stopmovement")
+                            net.writeBool(false)
+                            net.send()
+                            grabWeaponSound2()
+                        end
+                        if Frame == #Animation and judgement_cut_count == 5 then
+                            Sheathing=true
+                            Frame=1
+                            FrameTime = 0
+                            judgement_cut_active = false
+                            judgement_cut_count = 0
+                            net.start("stopmovement")
+                            net.writeBool(false)
+                            net.send()
+                            grabWeaponSound2()
+                        end
+                    end
+                    
+                    if owner():keyDown(IN_KEY.ATTACK) then
+                        if m1down != true then
+                            m1down = true
+                            if Frame == #Animation then
+                                if judgement_cut_active and not Sheathing then
+                                    Frame=1
+                                    FrameTime = 0
+                                    judgement_cut_count = judgement_cut_count + 1
+                                    judgementCutSound()
+                                    
+                                    attack_fx({"judgement_cut",{owner():getEyePos()+owner():getAimVector()*45-owner():getEyeAngles():getRight()*5-owner():getEyeAngles():getRight()*15-owner():getEyeAngles():getUp()*15,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},false})
+                                    if not owner():isOnGround() then
+                                        net.start("float")
+                                        net.send()
+                                    end
+                                else
+                                    if not Sheathing then
+                                        if AnimationName == "idle" then
+                                            if owner():isOnGround() then
+                                                AnimationData = Animations["atk_attack_01"]
+                                                Frame = 1
+                                                swingSoundYamatoSheath()
+                                                attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-30)},false,0.5})
+                                            else
+                                                AnimationData = Animations["atk_attack_04"]
+                                                Frame = 1
+                                                swingSoundYamatoSheath()
+                                                net.start("float")
+                                                net.send()
+                                                attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},true,0.5})
+                                            end
+                                        else
+                                            nextAnim(AnimationName)
+                                        end
+                                    end
+                                end
+                            end
+                            
+                            m1downct = timer.curtime()
+                        end
+                        if timer.curtime() - m1downct > 1 then
+                            if judgement_cut_active != true and block_judgement_cut != true then
+                                judgement_cut_count = 0
+                                Sheathing = false
+                                judgement_cut_ready = false
+                                judgement_cut_active = true
+                                Frame=1
+                                FrameTime = 0
+                                timer.stop("sheath")
+                                m1downct = timer.curtime()
+                                AnimationData = Animations["atk_judgement_cut"]
+                                grabWeaponSound2()
+                                if not owner():isOnGround() then
+                                    net.start("float")
+                                    net.send()
+                                else
+                                    net.start("backup")
+                                    net.send()
+                                    stepSound()
+                                end
+                                net.start("stopmovement")
+                                net.writeBool(true)
+                                net.send()
+                            end
+                        end
+                    else
+                        if m1down != false then
+                            m1down = false
+                        end
+                        block_judgement_cut = false
+                    end
+                    if owner():keyDown(IN_KEY.ATTACK2) then
+                        if m2down != true then
+                            m2down = true
+                            if not Sheathing and Frame == #Animation and not judgement_cut_active then
+                                heavyAttack(AnimationName)
+                            end
+                        end
+                    else
+                        if m2down != false then
+                            m2down = false
+                        end
+                    end
+                    if judgement_cut_active then movement_check = true end
+                    if not judgement_cut_active and owner():getWalkSpeed() < 1 and movement_check then
+                        if timer.curtime() - setwalkspeedct > 1 then
+                            setwalkspeedct = timer.curtime()
+                            net.start("stopmovement")
+                            net.writeBool(false)
+                            net.send()
+                            movement_check = false
+                        end
+                    end
+                end
+            end
+        end
+        CT = timer.curtime()
+    end)
+    
+end
