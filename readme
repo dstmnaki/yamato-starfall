@@ -2,7 +2,7 @@ WIP RELEASE
 
 Toss both folders to data/starfall/ in garry's mod
 
-Spawn the file titled "yamato" in slashblade_project/ it might take a bit to load, also in case you run into holo limit issues, sf_holograms_max_cl 1000
+Spawn the file titled "yamato" in slashblade_project/ it might take a bit to load, also in case you run into holo limit issues, sf_holograms_max_cl 1000, sf_timebuffer_cl_owner 0.25 if you hit cpu quota
 
 
 Requires the following, nothing should be missing but i can't say for sure
