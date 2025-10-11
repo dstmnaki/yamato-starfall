@@ -1,0 +1,87 @@
+@name Slashblade Animation Converter
+@persist AnimData:table Converted:string Frames:array
+@persist [Animations AnimNames]:table AnimIndex TIndex
+
+if (first()) {
+    
+    #include "ANIM_LIBRARY"
+    
+    ShowBones=0
+    for(I=1,9){
+        holoScale(I,vec(0.2)*ShowBones)
+    }
+    
+    Animations=table()
+    AnimNames=table()
+    
+    #replace ANIM_NAME with the animation table name from your ANIM_LIBRARY file
+    TIndex++, AnimNames[TIndex,string] = "ANIM_NAME1",Animations[TIndex,table]=ANIM_NAME1
+    TIndex++, AnimNames[TIndex,string] = "ANIM_NAME2",Animations[TIndex,table]=ANIM_NAME2
+    TIndex++, AnimNames[TIndex,string] = "ANIM_NAME3",Animations[TIndex,table]=ANIM_NAME3
+    TIndex++, AnimNames[TIndex,string] = "ANIM_NAME4",Animations[TIndex,table]=ANIM_NAME4
+    
+    
+    AnimIndex = 1
+    
+    timer("next", 200)
+    
+}
+event fileWritten(FilePath:string, Data:string) {
+    AnimIndex++
+    if(AnimIndex>Animations:count()){
+        print("All animations converted.")
+        Done = 1
+    }else{
+        timer("next",500)
+    }
+}
+if (clk("next")) {
+    local Anim = Animations[AnimIndex,table]
+    local Name = AnimNames[AnimIndex,string]
+    
+    local Lines = array()
+    local LineIndex = 1
+    
+    Lines[LineIndex, string] = Name + "={"
+    LineIndex++
+    
+    for (FrameIndex = 1, Anim:count()) {
+        local Frame = Anim[FrameIndex, table]
+        local SubLines = array()
+        local SubIndex = 1
+        
+        SubLines[SubIndex, string] = "{"
+        SubIndex++
+        
+        for (I = 1, 9) {
+            local A = Frame[I, angle]
+            local Line = "Angle("+A:pitch() + "," + A:yaw() + "," + A:roll() + "),"
+            SubLines[SubIndex, string] = Line
+            SubIndex++
+        }
+        
+        local Frametime = Frame[10, number]
+        SubLines[SubIndex, string] = Frametime + ","
+        SubIndex++
+        
+        local Sword = Frame[12, number]
+        local SwordStr = (Sword == 1) ? "true" : "false"
+        SubLines[SubIndex, string] = SwordStr
+        SubIndex++
+        
+        SubLines[SubIndex, string] = "}"+(FrameIndex==Anim:count() ? "" : ",")
+        SubIndex++
+        
+        Lines[LineIndex, string] = SubLines:concat("\n")
+        LineIndex++
+        if(FrameIndex==Anim:count()){
+            Lines[LineIndex, string] = "}"
+            local Output = Lines:concat("\n")
+            
+            local FileName = Name:lower() + ".txt"
+            fileWrite("slashblade_project/anim/"+FileName, "--@name slashblade_project/anim/"+FileName:sub(1,-5)+"\n"+Output)
+            print("Saved " + FileName)
+        }
+    }
+    
+}
