@@ -5,6 +5,18 @@ Toss the 2 folders to data/starfall/ in garry's mod, ignore the one titled EXPRE
 Spawn the file titled "yamato" in slashblade_project/ it might take a bit to load, also in case you run into holo limit issues, sf_holograms_max_cl 1000, sf_timebuffer_cl_owner 0.25 if you hit cpu quota
 
 
+Starfall Permissions (should be all)
+
+sf_permission entities.setPos entities 1
+sf_permission entities.setPos usergroups 1
+sf_permission entities.setVelocity entities 1
+sf_permission entities.setVelocity usergroups 1
+sf_permission player.modifyMovementProperties entities 1
+sf_permission player.modifyMovementProperties usergroups 1
+sf_permission entities.blockDamage entities 1
+sf_permission entities.blockDamage usergroups 1
+
+
 Requires the following, nothing should be missing but i can't say for sure
 
 StarfallEx (neo starfall should also work)
