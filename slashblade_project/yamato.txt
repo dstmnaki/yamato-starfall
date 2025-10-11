@@ -160,6 +160,16 @@ if SERVER then
     end)
 else
     if player() ~= owner() then return end
+    
+    if hologram.hologramsLeft() < 500 then
+        print("Holo limit low, running sf_holograms_max_cl 500 (or more) is recommended!")
+    end
+    
+    if cpuMax() < 0.1 then
+        print("CPU Quota low, running sf_timebuffer_cl_owner 0.1 (or more) is recommended!")
+    end
+    
+    
     require("nakilibs/pac_to_holo_loader.txt")
     require("slashblade_project/anim/anim_lib.txt")
     
