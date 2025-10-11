@@ -1,6 +1,6 @@
 WIP RELEASE
 
-Toss both folders to data/starfall/ in garry's mod
+Toss the 2 folders to data/starfall/ in garry's mod, ignore the one titled EXPRESSION2 that is for converting pac3's pac to e2 holo format into my sf holo loader format, take it if you wish to convert your own models to my format
 
 Spawn the file titled "yamato" in slashblade_project/ it might take a bit to load, also in case you run into holo limit issues, sf_holograms_max_cl 1000, sf_timebuffer_cl_owner 0.25 if you hit cpu quota
 
