@@ -16,6 +16,9 @@ sf_permission player.modifyMovementProperties usergroups 1
 sf_permission entities.blockDamage entities 1
 sf_permission entities.blockDamage usergroups 1
 
+
+-- following commands are client side
+
 sf_holograms_max_cl 500 (i can't say anything lower won't cause problems if you spam attacks such as judgement cut)
 
 sf_timebuffer_cl_owner 0.1 (if left at default '0.015' you will definetelly hit the cpu quota, 0.1 should be fine, 0.2 if it tick quota exceeds)
