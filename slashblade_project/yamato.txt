@@ -1067,7 +1067,7 @@ else
                                         FrameTime = 0
                                     elseif delay != true then
                                         delay = true
-                                        timer.create("sheath",(AnimationName == "atk_attack_05" and 0.6 or 0.3)-(AnimationName == "atk_aerial_rave" and 0.3 or 0),1,function()
+                                        timer.create("sheath",((AnimationName == "atk_attack_05" or AnimationName == "atk_attack_04") and 0.6 or 0.3)-(AnimationName == "atk_aerial_rave" and 0.3 or 0),1,function()
                                             Sheathing=true
                                             Frame=1
                                             FrameTime = 0
