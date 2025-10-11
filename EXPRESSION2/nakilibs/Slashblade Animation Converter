@@ -6,11 +6,6 @@ if (first()) {
     
     #include "ANIM_LIBRARY"
     
-    ShowBones=0
-    for(I=1,9){
-        holoScale(I,vec(0.2)*ShowBones)
-    }
-    
     Animations=table()
     AnimNames=table()
     
