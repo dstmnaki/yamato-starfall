@@ -21,7 +21,10 @@ if SERVER then
     local can_block_damage = hasPermission("entities.blockDamage", owner())
     if not can_block_damage then printConsole("can't block damage, run ' sf_permission entities.blockDamage entities 1; sf_permission entities.blockDamage usergroups 1 '") end
     
-    if not (can_setpos and can_setvelocity and can_setspeed and can_block_damage) then
+    local can_deal_damage = hasPermission("entities.applyDamage", chip())
+    if not can_deal_damage then printConsole("can't deal damage, run ' sf_permission entities.applyDamage entities 1; sf_permission entities.applyDamage usergroups 1 '") end
+    
+    if not (can_setpos and can_setvelocity and can_setspeed and can_block_damage and can_deal_damage) then
         print("Missing permissions, check console!")
     end
     
@@ -98,6 +101,53 @@ if SERVER then
         if name == "stopmovement" then
             freezePlayer(net.readBool())
         end
+        if name == "send_damage" then
+            local data = net.readTable()
+            local ents = data[1]
+            local damage = data[2]
+            for i, ent in pairs(ents) do
+                if ent and ent != nil and ent:isValid() and (ent:getHealth() > 0) then
+                    if hasPermission("entities.applyDamage", ent) then
+                        ent:applyDamage(damage, owner(), owner(), DAMAGE.SLASH, owner():getPos())
+                    end
+                    if (not ent:isOnGround()) and hasPermission("entities.setVelocity", ent) and hasPermission("entities.setPos", ent) then
+                        local vel = ent:getVelocity()
+                        ent:setVelocity(Vector(0,0,(vel.z < 0 and -vel.z or 0)+75))
+                    end
+                end
+            end
+        end
+        if name == "send_damage_up" then
+            local data = net.readTable()
+            local ents = data[1]
+            local damage = data[2]
+            for i, ent in pairs(ents) do
+                if ent and ent != nil and ent:isValid() and (ent:getHealth() > 0) then
+                    if hasPermission("entities.applyDamage", ent) then
+                        ent:applyDamage(damage, owner(), owner(), DAMAGE.SLASH, owner():getPos())
+                    end
+                    if hasPermission("entities.setVelocity", ent) and hasPermission("entities.setPos", ent) then
+                        ent:setVelocity(Vector(0,0,500))
+                        ent:setPos(ent:getPos()+Vector(0,0,1))
+                    end
+                end
+            end
+        end
+        if name == "send_damage_down" then
+            local data = net.readTable()
+            local ents = data[1]
+            local damage = data[2]
+            for i, ent in pairs(ents) do
+                if ent and ent != nil and ent:isValid() and (ent:getHealth() > 0) then
+                    if hasPermission("entities.applyDamage", ent) then
+                        ent:applyDamage(damage, owner(), owner(), DAMAGE.SLASH, owner():getPos())
+                    end
+                    if hasPermission("entities.setVelocity", ent) then
+                        ent:setVelocity(Vector(0,0,-2000))
+                    end
+                end
+            end
+        end
         if can_setvelocity then
             if name == "float" then
                 float = true
@@ -105,7 +155,6 @@ if SERVER then
                 block_force_ct = timer.curtime()+0.25
                 timer.simple(0,function()
                     local vel = owner():getVelocity()
-                    
                     owner():setVelocity(Vector(0,0,(vel.z < 0 and -vel.z or 0)+75))
                 end)
                 if already_floating != true then
@@ -460,43 +509,43 @@ else
     
     function swingSoundYamato()
         local pitch = math.random(15,20)*10
-        owner():emitSound(Sounds["swingSoundYamato"][math.random(table.count(Sounds["swingSoundYamato"]))],50,pitch,CHANNEL_AUTO)
+        owner():emitSound(Sounds["swingSoundYamato"][math.random(table.count(Sounds["swingSoundYamato"]))],100,pitch,CHANNEL_WEAPON)
     end
     function hitSoundYamato()
-        owner():emitSound(Sounds["hitSoundYamato"][math.random(table.count(Sounds["hitSoundYamato"]))],50,math.random(90,110),CHANNEL_AUTO)
+        owner():emitSound(Sounds["hitSoundYamato"][math.random(table.count(Sounds["hitSoundYamato"]))],100,math.random(90,110),CHANNEL_WEAPON)
     end
     function swingSoundYamatoSheath()
         local pitch = math.random(15,20)*10
-        owner():emitSound(Sounds["swingSoundYamatoSheath"][math.random(table.count(Sounds["swingSoundYamatoSheath"]))],50,pitch,CHANNEL_AUTO)
+        owner():emitSound(Sounds["swingSoundYamatoSheath"][math.random(table.count(Sounds["swingSoundYamatoSheath"]))],100,pitch,CHANNEL_WEAPON)
     end
     function hitSoundYamatoSheath()
-        owner():emitSound(Sounds["hitSoundYamatoSheath"][math.random(table.count(Sounds["hitSoundYamatoSheath"]))],50,math.random(90,110),CHANNEL_AUTO)
+        owner():emitSound(Sounds["hitSoundYamatoSheath"][math.random(table.count(Sounds["hitSoundYamatoSheath"]))],100,math.random(90,110),CHANNEL_WEAPON)
     end
     function sheathSoundYamato()
-        owner():emitSound(Sounds["sheathSoundYamato"][math.random(table.count(Sounds["sheathSoundYamato"]))],50,150,30,CHANNEL_AUTO)
+        owner():emitSound(Sounds["sheathSoundYamato"][math.random(table.count(Sounds["sheathSoundYamato"]))],100,150,CHANNEL_WEAPON)
     end
     
     
     --Judgement Cut
     function judgementCutSound()
-        owner():emitSound(Sounds["judgementCutSound"][math.random(table.count(Sounds["judgementCutSound"]))],50,100,CHANNEL_AUTO)
+        owner():emitSound(Sounds["judgementCutSound"][math.random(table.count(Sounds["judgementCutSound"]))],100,100,CHANNEL_WEAPON)
     end
     
     --Misc
     function blockingSound()
-        owner():emitSound(Sounds["blockingSound"][math.random(table.count(Sounds["blockingSound"]))],50,100,CHANNEL_AUTO)
+        owner():emitSound(Sounds["blockingSound"][math.random(table.count(Sounds["blockingSound"]))],100,100,CHANNEL_WEAPON)
     end
     function stepSound()
-        owner():emitSound(Sounds["stepSound"][math.random(table.count(Sounds["stepSound"]))],50,100,CHANNEL_AUTO)
+        owner():emitSound(Sounds["stepSound"][math.random(table.count(Sounds["stepSound"]))],100,100,CHANNEL_WEAPON)
     end
     function doubleJumpSound()
-        owner():emitSound(Sounds["doubleJumpSound"][math.random(table.count(Sounds["doubleJumpSound"]))],50,100,CHANNEL_AUTO)
+        owner():emitSound(Sounds["doubleJumpSound"][math.random(table.count(Sounds["doubleJumpSound"]))],100,100,CHANNEL_WEAPON)
     end
     function grabWeaponSound()
-        owner():emitSound(Sounds["grabWeaponSound"][math.random(table.count(Sounds["grabWeaponSound"]))],50,100,CHANNEL_AUTO)
+        owner():emitSound(Sounds["grabWeaponSound"][math.random(table.count(Sounds["grabWeaponSound"]))],100,100,CHANNEL_WEAPON)
     end
     function grabWeaponSound2()
-        owner():emitSound(Sounds["grabWeaponSound2"][math.random(table.count(Sounds["grabWeaponSound2"]))],50,100,CHANNEL_AUTO)
+        owner():emitSound(Sounds["grabWeaponSound2"][math.random(table.count(Sounds["grabWeaponSound2"]))],100,100,CHANNEL_WEAPON)
     end
     
     local Frame = 1
@@ -521,11 +570,66 @@ else
     local block_judgement_cut = false
     local m1downct = 0
     
+    local dmgframe = {}
+    
     hook.add("net","",function(name,len,ply)
         if name == "double_jump_snd" then
             doubleJumpSound()
         end
     end)
+    
+    function deal_damage(data)
+        local type = data[1]
+        if type == "sphere" then
+            local pos = data[2]
+            local area_size = data[3]
+            local damage = data[4]
+            local toTable = find.inSphere(pos, area_size, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
+            if toTable and #toTable > 0 and damage and damage > 0 then
+                local sound_type = data[5]
+                if sound_type == "blade" then
+                    hitSoundYamato()
+                elseif sound_type == "sheath" then
+                    hitSoundYamatoSheath()
+                end
+                net.start("send_damage")
+                net.writeTable({toTable,damage})
+                net.send()
+            end
+        elseif type == "judgement_cut" then
+            local pos = data[2]
+            local area_size = data[3]
+            local damage = data[4]
+            local toTable = find.inSphere(pos, area_size, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
+            if toTable and #toTable > 0 and damage and damage > 0 then
+                net.start("send_damage")
+                net.writeTable({toTable,damage})
+                net.send()
+            end
+        elseif type == "up" then
+            local pos = data[2]
+            local area_size = data[3]
+            local damage = data[4]
+            local toTable = find.inSphere(pos, area_size, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
+            if toTable and #toTable > 0 and damage and damage > 0 then
+                hitSoundYamato()
+                net.start("send_damage_up")
+                net.writeTable({toTable,damage})
+                net.send()
+            end
+        elseif type == "down" then
+            local pos = data[2]
+            local area_size = data[3]
+            local damage = data[4]
+            local toTable = find.inSphere(pos, area_size, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
+            if toTable and #toTable > 0 and damage and damage > 0 then
+                hitSoundYamato()
+                net.start("send_damage_down")
+                net.writeTable({toTable,damage})
+                net.send()
+            end
+        end
+    end
     
     function nextAnim(current)
         if Sheathing then return end
@@ -533,16 +637,19 @@ else
             AnimationData=Animations["atk_attack_02"]
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-35+180)},false,0.5})
             swingSoundYamatoSheath()
+            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,30,"sheath"}}
         end
         if current == "atk_attack_02" then
             AnimationData=Animations["atk_attack_04"]
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-35)},true,1.5})
             swingSoundYamato()
+            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,75,"blade"}}
         end
         if current == "atk_attack_04" then
             AnimationData=Animations["atk_attack_05"]
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45+180)},true,2})
             swingSoundYamato()
+            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,75,"blade"}}
         end
         if current == "atk_attack_05" then
             if owner():isOnGround() then
@@ -551,6 +658,7 @@ else
                     attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,0)},true,1.5})
                 end)
                 swingSoundYamato()
+                dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,75,"blade"}}
             else
                 AnimationData=Animations["atk_aerial_rave"]
                 attack_fx({"simple_noviewpunch",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-125)},true})
@@ -568,6 +676,7 @@ else
                 end)
                 getviewpunch[1]=timer.curtime()
                 getviewpunch[2]=Vector(1,-0.1,0):rotateAroundAxis(Vector(1,0,0),-125):getAngle()
+                dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,150,"blade"}}
                 net.start("goup_small")
                 net.send()
             end
@@ -590,7 +699,7 @@ else
             if owner():isOnGround() then
                 if current != "atk_rapid_slash" then
                     AnimationData=Animations["atk_rapid_slash"]
-                    timer.simple(0.3,function()
+                    timer.simple(0.35,function()
                         attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,0)},true,2})
                     end)
                     swingSoundYamato()
@@ -598,6 +707,7 @@ else
                     net.send()
                     stepSound()
                     grabWeaponSound()
+                    dmgframe = {2,{"sphere",owner():getEyePos()+owner():getAimVector()*50,50,125,"blade"}}
                 end
             else
                 if current != "atk_down" then
@@ -607,6 +717,7 @@ else
                     net.start("godown")
                     net.send()
                     grabWeaponSound()
+                    dmgframe = {1,{"down",owner():getEyePos()+Angle(0,owner():getEyeAngles().yaw,0):getForward()*25,50,150}}
                 end
             end
         end
@@ -619,11 +730,13 @@ else
             net.start("goup")
             net.send()
             grabWeaponSound()
+            dmgframe = {2,{"up",owner():getEyePos()+Angle(0,owner():getEyeAngles().yaw,0):getForward()*25,50,100}}
         end
         if current == "atk_attack_02" and not (owner():keyDown(IN_KEY.SPEED) and (owner():keyDown(IN_KEY.BACK) or owner():keyDown(IN_KEY.FORWARD))) and current != "atk_attack_03" then
             AnimationData=Animations["atk_attack_03"]
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-30)},true,2})
             swingSoundYamato()
+            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,125,"blade"}}
             net.start("short_dash")
             net.send()
         end
@@ -663,6 +776,10 @@ else
             t.holos[i]:setMaterial("models/debug/debugwhite")
             t.holos[i]:setColor(Color(125,255,255))
             t.holos[i]:suppressEngineLighting(true)
+            
+            timer.simple(1/12*i,function()
+                deal_damage({"judgement_cut",pos,orb_size,100})
+            end)
         end
         t.scale = orb_size
         t.creation_time = timer.curtime()
@@ -1070,6 +1187,11 @@ else
                             FrameTime=0
                             Frame=Frame+1
                             
+                            if dmgframe and #dmgframe > 0 and dmgframe[1] == (Frame-1) and not Sheathing and not judgement_cut_active then
+                                deal_damage(dmgframe[2])
+                                dmgframe = nil
+                            end
+                            
                             if Frame <= 0 then
                                 Frame= #Animation
                             end
@@ -1108,7 +1230,7 @@ else
                         
                     end
                     if judgement_cut_active then
-                        if timer.curtime() - m1downct > 3 then
+                        if timer.curtime() - m1downct > 1-0.5*(judgement_cut_count>0 and 1 or 0) then
                             Sheathing=true
                             Frame=1
                             FrameTime = 0
@@ -1148,7 +1270,6 @@ else
                                     FrameTime = 0
                                     judgement_cut_count = judgement_cut_count + 1
                                     judgementCutSound()
-                                    
                                     attack_fx({"judgement_cut",{owner():getEyePos()+owner():getAimVector()*45-owner():getEyeAngles():getRight()*5-owner():getEyeAngles():getRight()*15-owner():getEyeAngles():getUp()*15,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},false})
                                     if not owner():isOnGround() then
                                         net.start("float")
@@ -1162,6 +1283,7 @@ else
                                                 Frame = 1
                                                 swingSoundYamatoSheath()
                                                 attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-30)},false,0.5})
+                                                dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,30,"sheath"}}
                                             else
                                                 AnimationData = Animations["atk_attack_04"]
                                                 Frame = 1
@@ -1169,6 +1291,7 @@ else
                                                 net.start("float")
                                                 net.send()
                                                 attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},true,0.5})
+                                                dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,75,"blade"}}
                                             end
                                         else
                                             nextAnim(AnimationName)
