@@ -1,0 +1,141 @@
+@name nakilibs/pac_to_holo_to_sf_converter
+@persist [HT CT Lines ClipLines]:table [HN CN I] Status:string
+
+if(first()){
+    local Base = entity()
+    
+    #-- \/ \/ \/ INSERT CODE INSIDE HERE \/ \/ \/ --#
+    
+    
+    
+    #-- /\ /\ /\ INSERT CODE INSIDE HERE /\ /\ /\ --#
+    
+    function string table:addLine(){
+        local Data = This
+        local Index = Data[1,number]
+        if(Data[2,entity]){
+            ParentLine = "hc=hc+1 ht[hc]={hc,parent"
+        }elseif(Data[2,number]){
+            ParentLine = "hc=hc+1 ht[hc]={hc,"+Data[2,number]
+        }
+        local Pos = Data[5,vector]
+        local Ang = Data[6,angle]
+        local Scale = Data[7,vector]
+        local Model = Data[8,string]
+        local Material = Data[9,string]
+        local Color = Data[10,vector4]
+        
+        local ClipTable = table()
+        if(Data:exists(13)){
+            foreach(I:number,ClipData:table=Data[13,table]){
+                local ClipIndex = ClipData[2,number]
+                local ClipPos = ClipData[3,vector]
+                local Dir = ClipData[4,vector]
+                local Global = ClipData[5,number]
+                
+                ClipTable[ClipIndex,string]="{"+ClipIndex+",Vector("+round(ClipPos:x(),3)+","+round(ClipPos:y(),3)+","+round(ClipPos:z(),3)+"),Vector("+round(Dir:x(),3)+","+round(Dir:y(),3)+","+round(Dir:z(),3)+")}"
+            }
+        }
+        
+        local ClipTableConcat = ClipTable:concat(",")
+        
+        local Line = ParentLine+",real_parent,Vector("+round(Pos:x(),3)+","+round(Pos:y(),3)+","+round(Pos:z(),3)+"),Angle("+round(Ang:pitch(),2)+","+round(Ang:yaw(),2)+","+round(Ang:roll(),2)+"),\""+Model+"\",\""+Material+"\",Color("+round(Color:x(),0)+","+round(Color:y(),0)+","+round(Color:z(),0)+","+round(Color:w(),0)+"),Vector("+round(Scale:x(),4)+","+round(Scale:y(),4)+","+round(Scale:z(),4)+"),{"+ClipTableConcat+"}}"
+        return Line
+    }
+    
+    Status = "InitSpawn"
+    
+    function writeHoloData() {
+        switch (Status) {
+            case "InitSpawn",
+                runOnTick(1)
+                print("Reading data...")
+                Status = CN > 0 ? "MergeClips" : "LoadHolograms"
+                I=0
+            break
+            
+            case "LoadHolograms",
+                while (perf() & I < HN) {
+                    I++
+                    Lines[I,string] = HT[I, table]:addLine()
+                    if (I >= HN) {
+                        Status = "PrintStatus"
+                        I = 0
+                        break
+                    }
+                }
+            break
+            
+            case "MergeClips",
+                while (perf() & I < CN) {
+                    I++
+                    local ClipTable = CT[I, table]
+                    if(!HT[ClipTable[1,number],table]:exists(13)){HT[ClipTable[1,number],table][13,table]=table()}
+                    HT[ClipTable[1,number],table][13,table]:pushTable(ClipTable)
+                    if (I >= CN) {
+                        Status = "LoadHolograms"
+                        I = 0
+                        break
+                    }
+                }
+            break
+            
+            case "PrintStatus",
+                HT:clear()
+                
+                local D = date()["day",number]:toString()
+                local M = date()["month",number]:toString()
+                local Y = date()["year",number]:toString()
+                local Min = date()["min",number]:toString()
+                local Hour = date()["hour",number]:toString()
+                local Second = date()["sec",number]:toString()
+                
+                local FileName = ">e2shared/pac_to_e2_to_sf/"+Lines:count()+"_Holos_"+ClipLines:count()+"_Clips_"+Hour+"_"+Min+"_"+Second+"_"+D+"_"+M+"_"+Y+".txt"
+                
+                local LinesConcat = "    "+Lines:concat("\n    ")
+                local ClipLinesConcat = "\n    "+ClipLines:concat("\n    ")
+                
+                local Top = "--@name
+--@author "+owner():getName()+"
+--@include nakilibs/pac_to_holo_loader.txt
+--@shared
+
+if SERVER then
+    chip():setColor(Color(255,255,255,0))
+else
+    require(\"nakilibs/pac_to_holo_loader.txt\")
+    local ht, hc = {}, 0
+    
+    -- \/ \/ \/ INSERT CODE INSIDE HERE \/ \/ \/
+    
+    local size = 1
+    
+    local parent = chip()
+    local real_parent = chip()
+    "
+                
+                local Bottom = "
+    
+    -- /\ /\ /\ INSERT CODE INSIDE HERE /\ /\ /\
+    
+    pthl.createHolos(hc,ht,false,size)
+end"
+                
+                local WriteData = Top+"\n"+LinesConcat+"\n"+Bottom
+                
+                fileWrite(FileName,WriteData)
+                
+                Status = "InitPostSpawn"
+                print("File saved as "+FileName)
+                
+                runOnTick(0)
+            break
+        }
+    }
+    I=0
+    
+    timer("clk",100)
+    
+}else{
+    writeHoloData()
+}
