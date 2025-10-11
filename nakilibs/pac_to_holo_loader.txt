@@ -78,11 +78,8 @@ function pthl.createHolos(holocount,holotable,nomat,size,showbones)
                 if i >= holocount then
                     hook.remove("Think","holo_creation")
                     print("Finished creating "..holocount.." holograms!")
-                    i = nil
+                    i = 0
                     t = nil
-                    burst = nil
-                    burstAdjusted = nil
-                    holoLimit = nil
                     pthl.ready = true
                     return
                 end
