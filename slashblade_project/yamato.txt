@@ -9,8 +9,17 @@ if SERVER then
     local can_double_jump = true
     local is_on_ground = true
     local can_setpos = hasPermission("entities.setPos", owner())
+    if not can_setpos then printConsole("can't set position, run ' sf_permission entities.setPos entities 1; sf_permission entities.setPos usergroups 1 '") end
+    
     local can_setvelocity = hasPermission("entities.setVelocity", owner())
+    if not can_setpos then printConsole("can't set velocity, run ' sf_permission entities.setVelocity entities 1; sf_permission entities.setVelocity usergroups 1 '") end
+    
     local can_setspeed = hasPermission("player.modifyMovementProperties", owner())
+    if not can_setpos then printConsole("can't modify movement, run ' sf_permission player.modifyMovementProperties entities 1; sf_permission player.modifyMovementProperties usergroups 1 '") end
+    
+    local can_block_damage = hasPermission("entities.blockDamage", owner())
+    if not can_setpos then printConsole("can't block damage, run ' sf_permission entities.blockDamage entities 1; sf_permission entities.blockDamage usergroups 1 '") end
+    
     local float = true
     local floatct = timer.curtime()
     local already_floating = false
@@ -73,11 +82,13 @@ if SERVER then
             owner():setJumpPower(bool and 0.1 or 200*1.5)
         end
     end
-    hook.add("EntityTakeDamage", "", function(target, attacker, inflictor, amount, type, position, force)
-        if type == DAMAGE.FALL and target == owner() then
-            return true
-        end
-    end)
+    if can_block_damage then
+        hook.add("EntityTakeDamage", "", function(target, attacker, inflictor, amount, type, position, force)
+            if type == DAMAGE.FALL and target == owner() then
+                return true
+            end
+        end)
+    end
     hook.add("net","",function(name,len,ply)
         if name == "stopmovement" then
             freezePlayer(net.readBool())
