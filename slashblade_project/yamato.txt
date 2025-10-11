@@ -834,12 +834,6 @@ else
             if str == "CHudCrosshair" then
                 return false
             end
-            if str == "CHudHealth" then
-                return false
-            end
-            if str == "CHudBattery" then
-                return false
-            end
         end)
         if not STATIONARY then
             hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
