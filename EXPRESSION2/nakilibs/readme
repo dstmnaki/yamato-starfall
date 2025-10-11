@@ -1,0 +1,97 @@
+These tools are for converting e2 format data into starfall, i used these to convert my pac to holo yamato model and the animation library from the e2 slashblade project i had, if you plan on creating a new model for the sword, or edit it etc, instructions will be below, same for converting the animation data if you make new animations
+
+
+--Converting PAC3's PAC to E2 Holo format code into my starfall holo loader code--
+
+First get your pac model ready, you can parent your models if you wish, but you have to find each parented model and set the parent to be the index of the holo you want to parent them to, i.e simplified local Base = number
+I recommend you don't use any parents when modeling, it will be far easier to convert, next thing is clips, for some reason offset position and angle are not transferred to the pac to holo code, so do not use those if you use clips, this should be reported on pac3's github page
+Also parent chains of more than 16 are not supported, they apparently cause crashes, starfall prevents you from even creating them and it will error the chip, keep that in mind, that is also why i added "real_parent" in the converted code, "parent" is what the model position and angle is relative to, "real_parent" is what the model will be parented to
+
+If you got your model ready, set the name of the group to what you want to save the file as, now select the group, click on tools and *Convert group of models to Expression 2 holograms*
+This will create a file in expression2/pac/ with the name of the group, take the data in this section
+
+# # # # # # # # # HOLOGRAM DATA START # # # # # # # # #
+
+          hologram creation data
+
+          it will look like this
+
+    I++, HN++, HT[HN,table] = table(I, Base, Base, 0, vec(28.4462, -0.0994, 0), ang(90, 3.1, 0), vec(0.21, 0.34, 0.92), "models/sprops/cylinders/size_3/cylinder_6x6.mdl", "models/shadertest/shield", vec4(71, 77, 116, 255), 0, 0)
+	
+    I++, HN++, HT[HN,table] = table(I, Base, Base, 0, vec(6.1, -0.18, 0), ang(90, -2.2, 0), vec(0.21, 0.34, 1.05), "models/sprops/cylinders/size_3/cylinder_6x6.mdl", "models/shadertest/shield", vec4(71, 77, 116, 255), 0, 0)
+	
+    I++, HN++, HT[HN,table] = table(I, Base, Base, 0, vec(7.1292, -0.2195, 0), ang(90, -2.2, 0), vec(0.2247, 0.3638, 0.0214), "models/sprops/cylinders/size_3/cylinder_6x6.mdl", "models/shadertest/shield", vec4(142, 126, 98, 255), 0, 0)
+	
+    I++, HN++, HT[HN,table] = table(I, Base, Base, 0, vec(3.2121, -0.0691, 0), ang(0, -2.2, 0), vec(0.035, 0.0315, 0.0195), "models/props_vehicles/tire001a_tractor.mdl", "models/shadertest/shield", vec4(71, 77, 116, 255), 0, 0)
+	
+    I++, HN++, HT[HN,table] = table(I, Base, Base, 0, vec(17.48, -0.3795, 0), ang(90, -0.1, 0), vec(0.21, 0.34, 0.92), "models/sprops/cylinders/size_3/cylinder_6x6.mdl", "models/shadertest/shield", vec4(71, 77, 116, 255), 0, 0)
+	
+    I++, HN++, HT[HN,table] = table(I, Base, Base, 0, vec(3.0323, -0.0621, 0), ang(90, -2.2, 0), vec(0.2247, 0.3638, 0.0214), "models/sprops/cylinders/size_3/cylinder_6x6.mdl", "models/shadertest/shield", vec4(142, 126, 98, 255), 0, 0)
+	
+# # # # # # # # # HOLOGRAM DATA END # # # # # # # # #
+
+When you have copied the data, excluding the indicators that tell you where the data is, move it over to the converter section
+
+
+    #-- \/ \/ \/ INSERT CODE INSIDE HERE \/ \/ \/ --#
+    
+            in here
+    
+    #-- /\ /\ /\ INSERT CODE INSIDE HERE /\ /\ /\ --#
+
+Spawn the chip, it will read all of the lines, remove excess data and push clip data to the end if the model has any, the file will be save as expression2/e2shared/pac_to_e2_to_sf/<holo count>_holos_<clip count>_clips_<hour>_<minute>_<second>_<day>_<month>_<year>.txt
+
+Copy the created code into starfall editor, if you have the model loader library, you can now spawn the chip
+
+
+
+-- SEPARATOR -- SEPARATOR -- SEPARATOR -- SEPARATOR -- SEPARATOR -- SEPARATOR -- SEPARATOR -- SEPARATOR -- SEPARATOR --
+
+--Converting the e2 slashblade animation data to the format my yamato's animation framework uses--
+
+This one is a bit tricky, essentially it takes the entire animation table, runs each frame, picks up data and writes it all into a new table which gets converted to a string, that being the finished format in starfall
+
+Format goes as follows
+
+ANIM_NAME=table(table(
+bone 1 angle
+bone 2 angle
+bone 3 angle
+bone 4 angle
+bone 5 angle
+bone 6 angle
+bone 7 angle
+bone 8 angle
+bone 9 angle
+frame time
+IGNORED (second frame time multiplier, i redid the entire system so this is now useless, could be reused tho as i do it manually currently)
+sword in hand (number, 0/1)
+IGNORED (force edge in hand, i haven't added force edge so this gets skipped)
+),
+next frame...
+
+it gets converted to following format
+
+ANIM_ATTACK_05_SHEATH={
+{
+bone 1 angle
+bone 2 angle
+bone 3 angle
+bone 4 angle
+bone 5 angle
+bone 6 angle
+bone 7 angle
+bone 8 angle
+bone 9 angle
+frame time
+sword in hand (boolean, false/true)
+},
+next frame...
+
+the format in the original animation file has to match that strictly, it doesn't check what data it has, it simply goes by the index of entry, so if you don't have data where there is IGNORED, it won't just skip over it, if it had the 0/1 for if the sword is in hand, it will skip that and your animation data will not work
+
+include the animation table and name you want to save it as in the converter
+TIndex++, AnimNames[TIndex,string] = "ANIM_NAME",Animations[TIndex,table]=ANIM_NAME
+
+you can duplicate the line for each animation you want to process, each animation will be saved as >e2shared/slashblade_project/anim/<anim_name>.txt, move it over to starfall, you should do this in files, outside gmod, far easier
+i also recommend writing all of the animations into a larger anim_lib file that you can include
