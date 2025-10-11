@@ -8,17 +8,22 @@ if SERVER then
     chip():setColor(Color(255,255,255,0))
     local can_double_jump = true
     local is_on_ground = true
+    
     local can_setpos = hasPermission("entities.setPos", owner())
     if not can_setpos then printConsole("can't set position, run ' sf_permission entities.setPos entities 1; sf_permission entities.setPos usergroups 1 '") end
     
     local can_setvelocity = hasPermission("entities.setVelocity", owner())
-    if not can_setpos then printConsole("can't set velocity, run ' sf_permission entities.setVelocity entities 1; sf_permission entities.setVelocity usergroups 1 '") end
+    if not can_setvelocity then printConsole("can't set velocity, run ' sf_permission entities.setVelocity entities 1; sf_permission entities.setVelocity usergroups 1 '") end
     
     local can_setspeed = hasPermission("player.modifyMovementProperties", owner())
-    if not can_setpos then printConsole("can't modify movement, run ' sf_permission player.modifyMovementProperties entities 1; sf_permission player.modifyMovementProperties usergroups 1 '") end
+    if not can_setspeed then printConsole("can't modify movement, run ' sf_permission player.modifyMovementProperties entities 1; sf_permission player.modifyMovementProperties usergroups 1 '") end
     
     local can_block_damage = hasPermission("entities.blockDamage", owner())
-    if not can_setpos then printConsole("can't block damage, run ' sf_permission entities.blockDamage entities 1; sf_permission entities.blockDamage usergroups 1 '") end
+    if not can_block_damage then printConsole("can't block damage, run ' sf_permission entities.blockDamage entities 1; sf_permission entities.blockDamage usergroups 1 '") end
+    
+    if not (can_setpos and can_setvelocity and can_setspeed and can_block_damage) then
+        print("Missing permissions, check console!")
+    end
     
     local float = true
     local floatct = timer.curtime()
