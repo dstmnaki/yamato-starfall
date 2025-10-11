@@ -15,7 +15,8 @@ sf_permission player.modifyMovementProperties entities 1
 sf_permission player.modifyMovementProperties usergroups 1
 sf_permission entities.blockDamage entities 1
 sf_permission entities.blockDamage usergroups 1
-
+sf_permission entities.applyDamage entities 1
+sf_permission entities.applyDamage usergroups 1
 
 -- following commands are client side
 
