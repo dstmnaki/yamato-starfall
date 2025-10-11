@@ -767,7 +767,7 @@ else
     function create_orb()
         local orb_size = 45
         local tr = owner():getEyeTrace()
-        local pos = tr.HitPos+tr.HitNormal*orb_size
+        local pos = tr.HitPos+tr.HitNormal*orb_size/2
         local t = {}
         t.fx_root = hologram.create(pos,Angle(),"models/sprops/geometry/sphere_12.mdl",Vector())
         t.fx_root:setMaterial("models/debug/debugwhite")
