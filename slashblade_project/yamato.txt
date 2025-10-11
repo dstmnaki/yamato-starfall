@@ -1034,6 +1034,7 @@ else
                         sword:setAngles(sheath:localToWorldAngles(Angle(0,0,0)))
                     else
                         is_in = false
+                        quick_judgement_cut_block = false
                         sword:setPos(sword_in_hand:localToWorld(Vector(0,0,0)))
                         sword:setAngles(sword_in_hand:localToWorldAngles(Angle(0,0,0)))
                     end
