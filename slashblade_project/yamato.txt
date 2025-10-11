@@ -70,10 +70,10 @@ if SERVER then
             end
         end
     end)
+    local storeRunSpeed = 400
+    local storeWalkSpeed = 200
+    local storeJumpPower = 200
     if can_setspeed then
-        local storeRunSpeed = 400
-        local storeWalkSpeed = 200
-        local storeJumpPower = 200
         owner():setRunSpeed(100)
         owner():setWalkSpeed(400*1.3)
         owner():setJumpPower(200*1.5)
@@ -98,6 +98,13 @@ if SERVER then
         end)
     end
     hook.add("net","",function(name,len,ply)
+        if name == "set_player_movement" then
+            if can_setspeed then
+                owner():setRunSpeed(100)
+                owner():setWalkSpeed(400*1.3)
+                owner():setJumpPower(200*1.5)
+            end
+        end
         if name == "stopmovement" then
             freezePlayer(net.readBool())
         end
@@ -639,19 +646,19 @@ else
             AnimationData=Animations["atk_attack_02"]
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-35+180)},false,0.5})
             swingSoundYamatoSheath()
-            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,30,"sheath"}}
+            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,30,"sheath"}}
         end
         if current == "atk_attack_02" then
             AnimationData=Animations["atk_attack_04"]
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-35)},true,1.5})
             swingSoundYamato()
-            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,75,"blade"}}
+            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,75,"blade"}}
         end
         if current == "atk_attack_04" then
             AnimationData=Animations["atk_attack_05"]
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45+180)},true,2})
             swingSoundYamato()
-            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,75,"blade"}}
+            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,75,"blade"}}
         end
         if current == "atk_attack_05" then
             if owner():isOnGround() then
@@ -660,7 +667,7 @@ else
                     attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,0)},true,1.5})
                 end)
                 swingSoundYamato()
-                dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,75,"blade"}}
+                dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,75,"blade"}}
             else
                 AnimationData=Animations["atk_aerial_rave"]
                 attack_fx({"simple_noviewpunch",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-125)},true})
@@ -678,7 +685,7 @@ else
                 end)
                 getviewpunch[1]=timer.curtime()
                 getviewpunch[2]=Vector(1,-0.1,0):rotateAroundAxis(Vector(1,0,0),-125):getAngle()
-                dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,150,"blade"}}
+                dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,150,"blade"}}
                 net.start("goup_small")
                 net.send()
             end
@@ -709,7 +716,7 @@ else
                     net.send()
                     stepSound()
                     grabWeaponSound()
-                    dmgframe = {2,{"sphere",owner():getEyePos()+owner():getAimVector()*50,50,125,"blade"}}
+                    dmgframe = {2,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,125,"blade"}}
                 end
             else
                 if current != "atk_down" then
@@ -719,7 +726,7 @@ else
                     net.start("godown")
                     net.send()
                     grabWeaponSound()
-                    dmgframe = {1,{"down",owner():getEyePos()+Angle(0,owner():getEyeAngles().yaw,0):getForward()*25,50,150}}
+                    dmgframe = {1,{"down",owner():getEyePos()+Angle(0,owner():getEyeAngles().yaw,0):getForward()*30,60,150}}
                 end
             end
         end
@@ -732,13 +739,13 @@ else
             net.start("goup")
             net.send()
             grabWeaponSound()
-            dmgframe = {2,{"up",owner():getEyePos()+Angle(0,owner():getEyeAngles().yaw,0):getForward()*25,50,100}}
+            dmgframe = {2,{"up",owner():getEyePos()+Angle(0,owner():getEyeAngles().yaw,0):getForward()*30,60,100}}
         end
         if current == "atk_attack_02" and not (owner():keyDown(IN_KEY.SPEED) and (owner():keyDown(IN_KEY.BACK) or owner():keyDown(IN_KEY.FORWARD))) and current != "atk_attack_03" then
             AnimationData=Animations["atk_attack_03"]
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-30)},true,2})
             swingSoundYamato()
-            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,125,"blade"}}
+            dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,125,"blade"}}
             net.start("short_dash")
             net.send()
         end
@@ -1280,7 +1287,7 @@ else
                                                     Frame = 1
                                                     swingSoundYamatoSheath()
                                                     attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-30)},false,0.5})
-                                                    dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,30,"sheath"}}
+                                                    dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,30,"sheath"}}
                                                 else
                                                     AnimationData = Animations["atk_attack_04"]
                                                     Frame = 1
@@ -1288,7 +1295,7 @@ else
                                                     net.start("float")
                                                     net.send()
                                                     attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},true,0.5})
-                                                    dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,75,"blade"}}
+                                                    dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,75,"blade"}}
                                                 end
                                             else
                                                 nextAnim(AnimationName)
@@ -1357,7 +1364,8 @@ else
             else
                 if pthl.create_once != true then
                     pthl.create_once = true
-                    
+                    net.start("set_player_movement")
+                    net.send()
                     pthl.createHolos(hc,ht,false,size,showBones)
                 end
             end
@@ -1365,6 +1373,9 @@ else
         else
             pthl.ready = false
             pthl.create_once = false
+            attack_fx_simple = {}
+            attack_fx_judgement_cut = {}
+            attack_fx_judgement_cut_orb = {}
             hologram.removeAll()
             for i, holo in pairs(pthl.holos) do
                 if holo and holo != nil and holo:isValid() then
