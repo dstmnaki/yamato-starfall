@@ -476,6 +476,8 @@ else
 
     pthl.createHolos(hc,ht,false,size,showBones)
     
+    pthl.create_once = true
+    
     local Animations={}
     local AnimationNames={}
     ac=1 AnimationNames[ac] = "idle"                                Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_IDLE_01}
@@ -977,382 +979,402 @@ else
     local quick_judgement_cut_block = true
     
     hook.add("think","main",function()
-        if pthl.ready then
-            local cloth1 = pthl.holos[bones["cloth_1"]]
-            local cloth2 = pthl.holos[bones["cloth_2"]]
-            
-            if first != true then
-                first = true
+        if owner():getHealth() > 0 and owner():getActiveWeapon() != nil and owner():getActiveWeapon():isValid() then
+            if pthl.ready then
+                local cloth1 = pthl.holos[bones["cloth_1"]]
+                local cloth2 = pthl.holos[bones["cloth_2"]]
                 
-                sword_in_hand = pthl.holos[reftable["sword"]]
-                sheath = pthl.holos[reftable["sheath"]]
-                sword = pthl.holos[reftable["sword_real"]]
-                root = pthl.holos[reftable["root"]]
+                if first != true then
+                    first = true
+                    
+                    sword_in_hand = pthl.holos[reftable["sword"]]
+                    sheath = pthl.holos[reftable["sheath"]]
+                    sword = pthl.holos[reftable["sword_real"]]
+                    root = pthl.holos[reftable["root"]]
+                    if STATIONARY != true then
+                        root:setParent(owner():getActiveWeapon())
+                    end
+                    
+                    if cloth1 and cloth1 != nil and cloth1:isValid() and (cloth1:getBoneCount() >= 8) then
+                        cloth1:manipulateBonePosition(2, Vector(0,0,8))
+                        cloth1:manipulateBonePosition(3, Vector(0,0,8))
+                        cloth1:manipulateBonePosition(4, Vector(0,0,8))
+                        cloth1:manipulateBonePosition(5, Vector(0,0,8))
+                        cloth1:manipulateBonePosition(6, Vector(0,0,8))
+                        cloth1:manipulateBonePosition(7, Vector(0,0,8))
+                        cloth1:manipulateBonePosition(8, Vector(0,0,8))
+                    end
+                    if cloth2 and cloth2 != nil and cloth2:isValid() and (cloth2:getBoneCount() >= 8) then
+                        cloth2:manipulateBonePosition(2, Vector(0,0,8))
+                        cloth2:manipulateBonePosition(3, Vector(0,0,8))
+                        cloth2:manipulateBonePosition(4, Vector(0,0,8))
+                        cloth2:manipulateBonePosition(5, Vector(0,0,8))
+                        cloth2:manipulateBonePosition(6, Vector(0,0,8))
+                        cloth2:manipulateBonePosition(7, Vector(0,0,8))
+                        cloth2:manipulateBonePosition(8, Vector(0,0,8))
+                    end
+                    
+                    sheath_time = timer.curtime()
+                    sheath_fx_done = false
+                end
+                if #attack_fx_judgement_cut_orb > 0 then
+                    for i, t in pairs(attack_fx_judgement_cut_orb) do
+                        local time = math.easeInOutSine(math.clamp((timer.curtime() - t.creation_time)*2,0,2)/2)*2
+                        
+                        local root = t.fx_root
+                        if time >= 2 then
+                            for i2, ent in pairs(t.holos) do
+                                ent:remove()
+                            end
+                            root:remove()
+                            table.remove(attack_fx_judgement_cut_orb,i)
+                        end
+                        if root then
+                            local scale = t.scale*2
+                            root:setScale(Vector(-scale*math.clamp((math.sin(math.rad(time*90*1.25))*3),0,1))/12)
+                            for i2, ent in pairs(t.holos) do
+                                local duration = 0.25
+                                local delay = 0.1
+                                
+                                local local_time = time - (i2 - 1) * delay
+                                
+                                local one_scale = 0
+                                
+                                if local_time >= 0 and local_time <= duration then
+                                    local progress = local_time / duration
+                                    one_scale = math.sin(progress * 3.14)
+                                elseif local_time > duration then
+                                    one_scale = 0
+                                end
+                                
+                                local scale_factor = one_scale
+                                ent:setScale(Vector(1*math.clamp(scale_factor*3,0,1), scale*scale_factor, 1*math.clamp(scale_factor*3,0,1))/12)
+                            end
+                        end
+                    end
+                end
+                if #attack_fx_simple > 0 then
+                    for i, t in pairs(attack_fx_simple) do
+                        local time = timer.curtime() - t.creation_time
+                        if time > 1 then
+                            t.fx_root:remove()
+                            table.remove(attack_fx_simple,i)
+                        end
+                    end
+                end
+                if #attack_fx_judgement_cut > 0 then
+                    for i, t in pairs(attack_fx_judgement_cut) do
+                        local time = timer.curtime() - t.creation_time
+                        if time > 1 then
+                            t.fx_root:remove()
+                            table.remove(attack_fx_judgement_cut,i)
+                        end
+                    end
+                end
+                if not sheath_fx_done then
+                    local time = timer.curtime() - sheath_time
+                    if time > 1 then
+                        sheath_fx_done = true
+                    end
+                end
+                local c1_parent = cloth1:getParent()
+                
+                if c1_parent and c1_parent != nil and c1_parent:isValid() then
+                    local up = Vector(0, 0, -1)
+                    local forward = Angle(0,c1_parent:getUp():getAngle().yaw,0):getForward()
+                    local right = forward:cross(up)
+                    up = right:cross(forward)
+                    
+                    forward:normalize()
+                    right:normalize()
+                    up:normalize()
+                    
+                    local m = Matrix()
+                    m:setForward(forward)
+                    m:setRight(right)
+                    m:setUp(up)
+                    
+                    jiggle1 = math.slerpQuaternion(jiggle1:getQuaternion(),c1_parent:worldToLocalAngles(m:getAngles()):getQuaternion(),0.05):getEulerAngle()
+                    
+                    cloth1:setAngles(c1_parent:localToWorldAngles(jiggle1+Angle(1,0,-5)))
+                    
+                    cloth2:setAngles(c1_parent:localToWorldAngles(jiggle1+Angle(-1,0,5)))
+                end
                 if STATIONARY != true then
-                    root:setParent(owner():getActiveWeapon())
+                    root:setPos(owner():getEyePos()-Vector(0,0,25))
+                    root:setAngles(Angle(0,owner():getEyeAngles().yaw,0))
                 end
+                DELTA = timer.curtime() - CT
                 
-                if cloth1 and cloth1 != nil and cloth1:isValid() and (cloth1:getBoneCount() >= 8) then
-                    cloth1:manipulateBonePosition(2, Vector(0,0,8))
-                    cloth1:manipulateBonePosition(3, Vector(0,0,8))
-                    cloth1:manipulateBonePosition(4, Vector(0,0,8))
-                    cloth1:manipulateBonePosition(5, Vector(0,0,8))
-                    cloth1:manipulateBonePosition(6, Vector(0,0,8))
-                    cloth1:manipulateBonePosition(7, Vector(0,0,8))
-                    cloth1:manipulateBonePosition(8, Vector(0,0,8))
-                end
-                if cloth2 and cloth2 != nil and cloth2:isValid() and (cloth2:getBoneCount() >= 8) then
-                    cloth2:manipulateBonePosition(2, Vector(0,0,8))
-                    cloth2:manipulateBonePosition(3, Vector(0,0,8))
-                    cloth2:manipulateBonePosition(4, Vector(0,0,8))
-                    cloth2:manipulateBonePosition(5, Vector(0,0,8))
-                    cloth2:manipulateBonePosition(6, Vector(0,0,8))
-                    cloth2:manipulateBonePosition(7, Vector(0,0,8))
-                    cloth2:manipulateBonePosition(8, Vector(0,0,8))
-                end
-                
-                sheath_time = timer.curtime()
-                sheath_fx_done = false
-            end
-            if #attack_fx_judgement_cut_orb > 0 then
-                for i, t in pairs(attack_fx_judgement_cut_orb) do
-                    local time = math.easeInOutSine(math.clamp((timer.curtime() - t.creation_time)*2,0,2)/2)*2
-                    
-                    local root = t.fx_root
-                    if time >= 2 then
-                        for i2, ent in pairs(t.holos) do
-                            ent:remove()
-                        end
-                        root:remove()
-                        table.remove(attack_fx_judgement_cut_orb,i)
-                    end
-                    if root then
-                        local scale = t.scale*2
-                        root:setScale(Vector(-scale*math.clamp((math.sin(math.rad(time*90*1.25))*3),0,1))/12)
-                        for i2, ent in pairs(t.holos) do
-                            local duration = 0.25
-                            local delay = 0.1
-                            
-                            local local_time = time - (i2 - 1) * delay
-                            
-                            local one_scale = 0
-                            
-                            if local_time >= 0 and local_time <= duration then
-                                local progress = local_time / duration
-                                one_scale = math.sin(progress * 3.14)
-                            elseif local_time > duration then
-                                one_scale = 0
-                            end
-                            
-                            local scale_factor = one_scale
-                            ent:setScale(Vector(1*math.clamp(scale_factor*3,0,1), scale*scale_factor, 1*math.clamp(scale_factor*3,0,1))/12)
-                        end
-                    end
-                end
-            end
-            if #attack_fx_simple > 0 then
-                for i, t in pairs(attack_fx_simple) do
-                    local time = timer.curtime() - t.creation_time
-                    if time > 1 then
-                        t.fx_root:remove()
-                        table.remove(attack_fx_simple,i)
-                    end
-                end
-            end
-            if #attack_fx_judgement_cut > 0 then
-                for i, t in pairs(attack_fx_judgement_cut) do
-                    local time = timer.curtime() - t.creation_time
-                    if time > 1 then
-                        t.fx_root:remove()
-                        table.remove(attack_fx_judgement_cut,i)
-                    end
-                end
-            end
-            if not sheath_fx_done then
-                local time = timer.curtime() - sheath_time
-                if time > 1 then
-                    sheath_fx_done = true
-                end
-            end
-            local c1_parent = cloth1:getParent()
-            
-            if c1_parent and c1_parent != nil and c1_parent:isValid() then
-                local up = Vector(0, 0, -1)
-                local forward = Angle(0,c1_parent:getUp():getAngle().yaw,0):getForward()
-                local right = forward:cross(up)
-                up = right:cross(forward)
-                
-                forward:normalize()
-                right:normalize()
-                up:normalize()
-                
-                local m = Matrix()
-                m:setForward(forward)
-                m:setRight(right)
-                m:setUp(up)
-                
-                jiggle1 = math.slerpQuaternion(jiggle1:getQuaternion(),c1_parent:worldToLocalAngles(m:getAngles()):getQuaternion(),0.05):getEulerAngle()
-                
-                cloth1:setAngles(c1_parent:localToWorldAngles(jiggle1+Angle(1,0,-5)))
-                
-                cloth2:setAngles(c1_parent:localToWorldAngles(jiggle1+Angle(-1,0,5)))
-            end
-            if STATIONARY != true then
-                root:setPos(owner():getEyePos()-Vector(0,0,25))
-                root:setAngles(Angle(0,owner():getEyeAngles().yaw,0))
-            end
-            DELTA = timer.curtime() - CT
-            
-            if AnimationData then
-                AnimationName = AnimationData[1]
-                if AnimationName == "atk_judgement_cut" then
-                    Animation = AnimationData[Sheathing and 4 or (judgement_cut_ready and 3 or 2)] and AnimationData[Sheathing and 4 or (judgement_cut_ready and 3 or 2)] or Animations[AnimationNames[1]]
-                else
-                    Animation = AnimationData[Sheathing and 3 or 2] and AnimationData[Sheathing and 3 or 2] or Animations[AnimationNames[1]]
-                end
-                
-                if Animation then FrameCount = #Animation end
-                if Animation and Animation[Frame] then
-                    for I = 1, 9 do
-                        if holo and holo != nil and holo:isValid() then
-                            LastFrame=Animation[math.clamp(Frame,1,FrameCount)][I]
-                            NextFrame=Animation[((math.clamp(Frame+1,1,FrameCount))==FrameCount+1) and 1 or math.clamp(Frame+1,1,FrameCount)][I]
-                            holo = pthl.holos[bones[I]]
-                            
-                            mix = FrameTime/FrameRate
-                            
-                            holo:setAngles(holo:getParent():localToWorldAngles(math.slerpQuaternion(LastFrame:getQuaternion(),
-                            NextFrame:getQuaternion(),
-                            mix):getEulerAngle()))
-                        end
-                    end
-                    
-                    FrameRate = Animation[math.clamp(Frame,1,FrameCount)][10]
-                    if judgement_cut_ready then
-                        FrameTimeAdd = Sheathing and 40 or 60
+                if AnimationData then
+                    AnimationName = AnimationData[1]
+                    if AnimationName == "atk_judgement_cut" then
+                        Animation = AnimationData[Sheathing and 4 or (judgement_cut_ready and 3 or 2)] and AnimationData[Sheathing and 4 or (judgement_cut_ready and 3 or 2)] or Animations[AnimationNames[1]]
                     else
-                        if AnimationName == "atk_attack_03" then
-                            FrameTimeAdd = Sheathing and 45 or 125
-                        elseif AnimationName == "atk_attack_04" or AnimationName == "atk_attack_05" then
-                            FrameTimeAdd = Sheathing and 55 or 250
-                        elseif AnimationName == "atk_rapid_slash" then
-                            FrameTimeAdd = Sheathing and 100 or 70
-                        elseif AnimationName == "atk_attack_07" then
-                            FrameTimeAdd = Sheathing and 70 or 100
-                        elseif AnimationName == "atk_aerial_rave" then
-                            FrameTimeAdd = Sheathing and 70 or 100
-                        elseif AnimationName == "atk_down" then
-                            FrameTimeAdd = Sheathing and 70 or 100
-                        elseif AnimationName == "atk_attack_01" then
-                            FrameTimeAdd = Sheathing and 65 or 65
-                        elseif AnimationName == "atk_attack_02" then
-                            FrameTimeAdd = Sheathing and 65 or 65
-                        elseif AnimationName == "atk_attack_06" then
-                            FrameTimeAdd = Sheathing and 50 or 80
+                        Animation = AnimationData[Sheathing and 3 or 2] and AnimationData[Sheathing and 3 or 2] or Animations[AnimationNames[1]]
+                    end
+                    
+                    if Animation then FrameCount = #Animation end
+                    if Animation and Animation[Frame] then
+                        for I = 1, 9 do
+                            if holo and holo != nil and holo:isValid() then
+                                LastFrame=Animation[math.clamp(Frame,1,FrameCount)][I]
+                                NextFrame=Animation[((math.clamp(Frame+1,1,FrameCount))==FrameCount+1) and 1 or math.clamp(Frame+1,1,FrameCount)][I]
+                                holo = pthl.holos[bones[I]]
+                                
+                                mix = FrameTime/FrameRate
+                                
+                                holo:setAngles(holo:getParent():localToWorldAngles(math.slerpQuaternion(LastFrame:getQuaternion(),
+                                NextFrame:getQuaternion(),
+                                mix):getEulerAngle()))
+                            end
+                        end
+                        
+                        FrameRate = Animation[math.clamp(Frame,1,FrameCount)][10]
+                        if judgement_cut_ready then
+                            FrameTimeAdd = Sheathing and 40 or 60
                         else
-                            FrameTimeAdd = 45
+                            if AnimationName == "atk_attack_03" then
+                                FrameTimeAdd = Sheathing and 45 or 125
+                            elseif AnimationName == "atk_attack_04" or AnimationName == "atk_attack_05" then
+                                FrameTimeAdd = Sheathing and 55 or 250
+                            elseif AnimationName == "atk_rapid_slash" then
+                                FrameTimeAdd = Sheathing and 100 or 70
+                            elseif AnimationName == "atk_attack_07" then
+                                FrameTimeAdd = Sheathing and 70 or 100
+                            elseif AnimationName == "atk_aerial_rave" then
+                                FrameTimeAdd = Sheathing and 70 or 100
+                            elseif AnimationName == "atk_down" then
+                                FrameTimeAdd = Sheathing and 70 or 100
+                            elseif AnimationName == "atk_attack_01" then
+                                FrameTimeAdd = Sheathing and 65 or 65
+                            elseif AnimationName == "atk_attack_02" then
+                                FrameTimeAdd = Sheathing and 65 or 65
+                            elseif AnimationName == "atk_attack_06" then
+                                FrameTimeAdd = Sheathing and 50 or 80
+                            else
+                                FrameTimeAdd = 45
+                            end
                         end
-                    end
-                    FrameTime=FrameTime+FrameTimeAdd*DELTA
-                    FrameTime=math.clamp(FrameTime,0,FrameRate)
-                    
-                    Sheathed = not Animation[math.clamp(Frame+1,1,FrameCount)][11]
-                    
-                    if Sheathed then
-                        if is_in != true then
-                            is_in = true
-                            sheathSoundYamato()
-                            
+                        FrameTime=FrameTime+FrameTimeAdd*DELTA
+                        FrameTime=math.clamp(FrameTime,0,FrameRate)
+                        
+                        Sheathed = not Animation[math.clamp(Frame+1,1,FrameCount)][11]
+                        
+                        if Sheathed then
+                            if is_in != true then
+                                is_in = true
+                                sheathSoundYamato()
+                                
+                                quick_judgement_cut_block = false
+                                sheath_time = timer.curtime()
+                                sheath_fx_done = false
+                            end
+                            sword:setPos(sheath:localToWorld(Vector(0,0,0)))
+                            sword:setAngles(sheath:localToWorldAngles(Angle(0,0,0)))
+                        else
+                            is_in = false
                             quick_judgement_cut_block = false
-                            sheath_time = timer.curtime()
-                            sheath_fx_done = false
+                            sword:setPos(sword_in_hand:localToWorld(Vector(0,0,0)))
+                            sword:setAngles(sword_in_hand:localToWorldAngles(Angle(0,0,0)))
                         end
-                        sword:setPos(sheath:localToWorld(Vector(0,0,0)))
-                        sword:setAngles(sheath:localToWorldAngles(Angle(0,0,0)))
-                    else
-                        is_in = false
-                        quick_judgement_cut_block = false
-                        sword:setPos(sword_in_hand:localToWorld(Vector(0,0,0)))
-                        sword:setAngles(sword_in_hand:localToWorldAngles(Angle(0,0,0)))
-                    end
-                    
-                    if AnimationName != "idle" then
-                        if FrameTime>=FrameRate then
-                            FrameTime=0
-                            Frame=Frame+1
-                            
-                            if dmgframe and #dmgframe > 0 and dmgframe[1] == (Frame-1) and not Sheathing and not judgement_cut_active then
-                                deal_damage(dmgframe[2])
-                                dmgframe = nil
-                            end
-                            
-                            if Frame <= 0 then
-                                Frame= #Animation
-                            end
-                            
-                            if Frame > #Animation then
-                                if Sheathing then
-                                    AnimationData=Animations[AnimationNames[1]]
-                                    Frame=1
-                                    Sheathing=false
-                                    delay = false
-                                    judgement_cut_active = false
-                                    judgement_cut_ready = false
-                                else
-                                    Frame = #Animation
-                                    if judgement_cut_active then judgement_cut_ready = true end
-                                    if AnimationName == "atk_attack_04" and owner():isOnGround() then
-                                        nextAnim(AnimationName)
-                                    elseif AnimationName == "atk_attack_07" then
-                                        Sheathing=true
+                        
+                        if AnimationName != "idle" then
+                            if FrameTime>=FrameRate then
+                                FrameTime=0
+                                Frame=Frame+1
+                                
+                                if dmgframe and #dmgframe > 0 and dmgframe[1] == (Frame-1) and not Sheathing and not judgement_cut_active then
+                                    deal_damage(dmgframe[2])
+                                    dmgframe = nil
+                                end
+                                
+                                if Frame <= 0 then
+                                    Frame= #Animation
+                                end
+                                
+                                if Frame > #Animation then
+                                    if Sheathing then
+                                        AnimationData=Animations[AnimationNames[1]]
                                         Frame=1
-                                        FrameTime = 0
-                                    elseif delay != true then
-                                        delay = true
-                                        timer.create("sheath",((AnimationName == "atk_attack_05" or AnimationName == "atk_attack_04") and 0.6 or 0.3)-(AnimationName == "atk_aerial_rave" and 0.3 or 0),1,function()
+                                        Sheathing=false
+                                        delay = false
+                                        judgement_cut_active = false
+                                        judgement_cut_ready = false
+                                    else
+                                        Frame = #Animation
+                                        if judgement_cut_active then judgement_cut_ready = true end
+                                        if AnimationName == "atk_attack_04" and owner():isOnGround() then
+                                            nextAnim(AnimationName)
+                                        elseif AnimationName == "atk_attack_07" then
                                             Sheathing=true
                                             Frame=1
                                             FrameTime = 0
-                                        end)
+                                        elseif delay != true then
+                                            delay = true
+                                            timer.create("sheath",((AnimationName == "atk_attack_05" or AnimationName == "atk_attack_04") and 0.6 or 0.3)-(AnimationName == "atk_aerial_rave" and 0.3 or 0),1,function()
+                                                Sheathing=true
+                                                Frame=1
+                                                FrameTime = 0
+                                            end)
+                                        end
                                     end
                                 end
+                            else
+                                
                             end
                         else
                             
                         end
-                    else
-                        
-                    end
-                    if judgement_cut_active then
-                        if timer.curtime() - m1downct > 1-0.5*(judgement_cut_count>0 and 1 or 0) then
-                            Sheathing=true
-                            Frame=1
-                            FrameTime = 0
-                            judgement_cut_active = false
-                            block_judgement_cut = true
-                            net.start("stopmovement")
-                            net.writeBool(false)
-                            net.send()
-                            grabWeaponSound2()
-                        end
-                        if Frame == #Animation and judgement_cut_count == 5 then
-                            Sheathing=true
-                            Frame=1
-                            FrameTime = 0
-                            judgement_cut_active = false
-                            judgement_cut_count = 0
-                            net.start("stopmovement")
-                            net.writeBool(false)
-                            net.send()
-                            grabWeaponSound2()
-                        end
-                    end
-                    
-                    if owner():keyDown(IN_KEY.ATTACK) then
-                        if m1down != true then
-                            m1down = true
-                            if not quick_judgement_cut_block and (timer.curtime() - sheath_time < 0.1) then
-                                quick_judgement_cut_block = true
-                                judgementCutSound()
-                                attack_fx({"judgement_cut",{owner():getEyePos()+owner():getAimVector()*45-owner():getEyeAngles():getRight()*5-owner():getEyeAngles():getRight()*15-owner():getEyeAngles():getUp()*15,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},false})
+                        if judgement_cut_active then
+                            if timer.curtime() - m1downct > 1-0.5*(judgement_cut_count>0 and 1 or 0) then
+                                Sheathing=true
+                                Frame=1
+                                FrameTime = 0
+                                judgement_cut_active = false
+                                block_judgement_cut = true
+                                net.start("stopmovement")
+                                net.writeBool(false)
+                                net.send()
+                                grabWeaponSound2()
                             end
-                            quick_judgement_cut_block = true
-                            
-                            if Frame == #Animation then
-                                if judgement_cut_active and not Sheathing then
-                                    Frame=1
-                                    FrameTime = 0
-                                    judgement_cut_count = judgement_cut_count + 1
+                            if Frame == #Animation and judgement_cut_count == 5 then
+                                Sheathing=true
+                                Frame=1
+                                FrameTime = 0
+                                judgement_cut_active = false
+                                judgement_cut_count = 0
+                                net.start("stopmovement")
+                                net.writeBool(false)
+                                net.send()
+                                grabWeaponSound2()
+                            end
+                        end
+                        
+                        if owner():keyDown(IN_KEY.ATTACK) then
+                            if m1down != true then
+                                m1down = true
+                                if not quick_judgement_cut_block and (timer.curtime() - sheath_time < 0.1) then
+                                    quick_judgement_cut_block = true
                                     judgementCutSound()
                                     attack_fx({"judgement_cut",{owner():getEyePos()+owner():getAimVector()*45-owner():getEyeAngles():getRight()*5-owner():getEyeAngles():getRight()*15-owner():getEyeAngles():getUp()*15,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},false})
-                                    if not owner():isOnGround() then
-                                        net.start("float")
-                                        net.send()
-                                    end
-                                else
-                                    if not Sheathing then
-                                        if AnimationName == "idle" then
-                                            if owner():isOnGround() then
-                                                AnimationData = Animations["atk_attack_01"]
-                                                Frame = 1
-                                                swingSoundYamatoSheath()
-                                                attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-30)},false,0.5})
-                                                dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,30,"sheath"}}
+                                end
+                                quick_judgement_cut_block = true
+                                
+                                if Frame == #Animation then
+                                    if judgement_cut_active and not Sheathing then
+                                        Frame=1
+                                        FrameTime = 0
+                                        judgement_cut_count = judgement_cut_count + 1
+                                        judgementCutSound()
+                                        attack_fx({"judgement_cut",{owner():getEyePos()+owner():getAimVector()*45-owner():getEyeAngles():getRight()*5-owner():getEyeAngles():getRight()*15-owner():getEyeAngles():getUp()*15,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},false})
+                                        if not owner():isOnGround() then
+                                            net.start("float")
+                                            net.send()
+                                        end
+                                    else
+                                        if not Sheathing then
+                                            if AnimationName == "idle" then
+                                                if owner():isOnGround() then
+                                                    AnimationData = Animations["atk_attack_01"]
+                                                    Frame = 1
+                                                    swingSoundYamatoSheath()
+                                                    attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-30)},false,0.5})
+                                                    dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,30,"sheath"}}
+                                                else
+                                                    AnimationData = Animations["atk_attack_04"]
+                                                    Frame = 1
+                                                    swingSoundYamatoSheath()
+                                                    net.start("float")
+                                                    net.send()
+                                                    attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},true,0.5})
+                                                    dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,75,"blade"}}
+                                                end
                                             else
-                                                AnimationData = Animations["atk_attack_04"]
-                                                Frame = 1
-                                                swingSoundYamatoSheath()
-                                                net.start("float")
-                                                net.send()
-                                                attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45)},true,0.5})
-                                                dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*25,50,75,"blade"}}
+                                                nextAnim(AnimationName)
                                             end
-                                        else
-                                            nextAnim(AnimationName)
                                         end
                                     end
                                 end
-                            end
-                            
-                            m1downct = timer.curtime()
-                        end
-                        if timer.curtime() - m1downct > 1 then
-                            if judgement_cut_active != true and block_judgement_cut != true then
-                                judgement_cut_count = 0
-                                Sheathing = false
-                                judgement_cut_ready = false
-                                judgement_cut_active = true
-                                Frame=1
-                                FrameTime = 0
-                                timer.stop("sheath")
+                                
                                 m1downct = timer.curtime()
-                                AnimationData = Animations["atk_judgement_cut"]
-                                grabWeaponSound2()
-                                if not owner():isOnGround() then
-                                    net.start("float")
+                            end
+                            if timer.curtime() - m1downct > 1 then
+                                if judgement_cut_active != true and block_judgement_cut != true then
+                                    judgement_cut_count = 0
+                                    Sheathing = false
+                                    judgement_cut_ready = false
+                                    judgement_cut_active = true
+                                    Frame=1
+                                    FrameTime = 0
+                                    timer.stop("sheath")
+                                    m1downct = timer.curtime()
+                                    AnimationData = Animations["atk_judgement_cut"]
+                                    grabWeaponSound2()
+                                    if not owner():isOnGround() then
+                                        net.start("float")
+                                        net.send()
+                                    else
+                                        net.start("backup")
+                                        net.send()
+                                        stepSound()
+                                    end
+                                    net.start("stopmovement")
+                                    net.writeBool(true)
                                     net.send()
-                                else
-                                    net.start("backup")
-                                    net.send()
-                                    stepSound()
                                 end
+                            end
+                        else
+                            if m1down != false then
+                                m1down = false
+                            end
+                            block_judgement_cut = false
+                        end
+                        if owner():keyDown(IN_KEY.ATTACK2) then
+                            if m2down != true then
+                                m2down = true
+                                if not Sheathing and Frame == #Animation and not judgement_cut_active then
+                                    heavyAttack(AnimationName)
+                                end
+                            end
+                        else
+                            if m2down != false then
+                                m2down = false
+                            end
+                        end
+                        if judgement_cut_active then movement_check = true end
+                        if not judgement_cut_active and owner():getWalkSpeed() < 1 and movement_check then
+                            if timer.curtime() - setwalkspeedct > 1 then
+                                setwalkspeedct = timer.curtime()
                                 net.start("stopmovement")
-                                net.writeBool(true)
+                                net.writeBool(false)
                                 net.send()
+                                movement_check = false
                             end
-                        end
-                    else
-                        if m1down != false then
-                            m1down = false
-                        end
-                        block_judgement_cut = false
-                    end
-                    if owner():keyDown(IN_KEY.ATTACK2) then
-                        if m2down != true then
-                            m2down = true
-                            if not Sheathing and Frame == #Animation and not judgement_cut_active then
-                                heavyAttack(AnimationName)
-                            end
-                        end
-                    else
-                        if m2down != false then
-                            m2down = false
-                        end
-                    end
-                    if judgement_cut_active then movement_check = true end
-                    if not judgement_cut_active and owner():getWalkSpeed() < 1 and movement_check then
-                        if timer.curtime() - setwalkspeedct > 1 then
-                            setwalkspeedct = timer.curtime()
-                            net.start("stopmovement")
-                            net.writeBool(false)
-                            net.send()
-                            movement_check = false
                         end
                     end
                 end
+            else
+                if pthl.create_once != true then
+                    pthl.create_once = true
+                    
+                    pthl.createHolos(hc,ht,false,size,showBones)
+                end
             end
+            CT = timer.curtime()
+        else
+            pthl.ready = false
+            pthl.create_once = false
+            hologram.removeAll()
+            for i, holo in pairs(pthl.holos) do
+                if holo and holo != nil and holo:isValid() then
+                    holo:remove()
+                end
+            end
+            pthl.holos = {}
+            
+            first = false
         end
-        CT = timer.curtime()
     end)
     
 end
