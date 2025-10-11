@@ -778,7 +778,7 @@ else
             t.holos[i]:suppressEngineLighting(true)
             
             timer.simple(1/12*i,function()
-                deal_damage({"judgement_cut",pos,orb_size,100})
+                deal_damage({"judgement_cut",pos,orb_size,75})
             end)
         end
         t.scale = orb_size
