@@ -879,36 +879,36 @@ else
             end
             if #attack_fx_judgement_cut_orb > 0 then
                 for i, t in pairs(attack_fx_judgement_cut_orb) do
+                    local time = math.easeInOutSine(math.clamp((timer.curtime() - t.creation_time)*2,0,2)/2)*2
+                    
                     local root = t.fx_root
+                    if time >= 2 then
+                        for i2, ent in pairs(t.holos) do
+                            ent:remove()
+                        end
+                        root:remove()
+                        table.remove(attack_fx_judgement_cut_orb,i)
+                    end
                     if root then
-                        local time = math.easeInOutSine(math.clamp((timer.curtime() - t.creation_time)*2,0,2)/2)*2
                         local scale = t.scale*2
                         root:setScale(Vector(-scale*math.clamp((math.sin(math.rad(time*90*1.25))*3),0,1))/12)
-                        if time > 3 then
-                            for i2, ent in pairs(t.holos) do
-                                ent:remove()
+                        for i2, ent in pairs(t.holos) do
+                            local duration = 0.25
+                            local delay = 0.1
+                            
+                            local local_time = time - (i2 - 1) * delay
+                            
+                            local one_scale = 0
+                            
+                            if local_time >= 0 and local_time <= duration then
+                                local progress = local_time / duration
+                                one_scale = math.sin(progress * 3.14)
+                            elseif local_time > duration then
+                                one_scale = 0
                             end
-                            t.fx_root:remove()
-                            table.remove(attack_fx_judgement_cut_orb,i)
-                        else
-                            for i2, ent in pairs(t.holos) do
-                                local duration = 0.25
-                                local delay = 0.1
-                                
-                                local local_time = time - (i2 - 1) * delay
-                                
-                                local one_scale = 0
-                                
-                                if local_time >= 0 and local_time <= duration then
-                                    local progress = local_time / duration
-                                    one_scale = math.sin(progress * 3.14)
-                                elseif local_time > duration then
-                                    one_scale = 0
-                                end
-                                
-                                local scale_factor = one_scale
-                                ent:setScale(Vector(1*math.clamp(scale_factor*3,0,1), scale*scale_factor, 1*math.clamp(scale_factor*3,0,1))/12)
-                            end
+                            
+                            local scale_factor = one_scale
+                            ent:setScale(Vector(1*math.clamp(scale_factor*3,0,1), scale*scale_factor, 1*math.clamp(scale_factor*3,0,1))/12)
                         end
                     end
                 end
