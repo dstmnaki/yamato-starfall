@@ -496,6 +496,7 @@ else
     ac=ac+1 AnimationNames[ac] = "atk_attack_06"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_06,ANIM_ATTACK_06_SHEATH}
     ac=ac+1 AnimationNames[ac] = "atk_attack_07"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_07,ANIM_ATTACK_07_SHEATH}
     ac=ac+1 AnimationNames[ac] = "atk_rapid_slash"                  Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_RAPID_SLASH,ANIM_RAPID_SLASH_SHEATH}
+    ac=ac+1 AnimationNames[ac] = "atk_rapid_slash_ex"               Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_04,ANIM_RAPID_SLASH_SHEATH}
     ac=ac+1 AnimationNames[ac] = "atk_aerial_rave"                  Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_AERIAL_RAVE,ANIM_ATTACK_04_SHEATH}
     ac=ac+1 AnimationNames[ac] = "atk_down"                         Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_FORCE_EDGE_01,ANIM_ATTACK_04_SHEATH}
     ac=ac+1 AnimationNames[ac] = "atk_judgement_cut"                Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_JUDGEMENT_CUT_START,ANIM_JUDGEMENT_CUT,ANIM_JUDGEMENT_CUT_SHEATH}
@@ -580,6 +581,7 @@ else
     local m1downct = 0
     
     local dmgframe = {}
+    local Rapid_Slash_Ex_Count = 0
     
     hook.add("net","",function(name,len,ply)
         if name == "double_jump_snd" then
@@ -1159,6 +1161,8 @@ else
                                 FrameTimeAdd = Sheathing and 65 or 65
                             elseif AnimationName == "atk_attack_06" then
                                 FrameTimeAdd = Sheathing and 50 or 80
+                            elseif AnimationName == "atk_rapid_slash_ex" then
+                                FrameTimeAdd = Sheathing and 80 or 250
                             else
                                 FrameTimeAdd = 45
                             end
@@ -1203,7 +1207,8 @@ else
                                 if Frame > #Animation then
                                     if Sheathing then
                                         AnimationData=Animations[AnimationNames[1]]
-                                        Frame=1
+                                        Frame = 1
+                                        FrameTime = 0
                                         Sheathing=false
                                         delay = false
                                         judgement_cut_active = false
@@ -1215,13 +1220,13 @@ else
                                             nextAnim(AnimationName)
                                         elseif AnimationName == "atk_attack_07" then
                                             Sheathing=true
-                                            Frame=1
+                                            Frame = 1
                                             FrameTime = 0
                                         elseif delay != true then
                                             delay = true
                                             timer.create("sheath",((AnimationName == "atk_attack_05" or AnimationName == "atk_attack_04") and 0.6 or 0.3)-(AnimationName == "atk_aerial_rave" and 0.3 or 0),1,function()
                                                 Sheathing=true
-                                                Frame=1
+                                                Frame = 1
                                                 FrameTime = 0
                                             end)
                                         end
@@ -1236,7 +1241,7 @@ else
                         if judgement_cut_active then
                             if timer.curtime() - m1downct > 1-0.5*(judgement_cut_count>0 and 1 or 0) then
                                 Sheathing=true
-                                Frame=1
+                                Frame = 1
                                 FrameTime = 0
                                 judgement_cut_active = false
                                 block_judgement_cut = true
@@ -1247,7 +1252,7 @@ else
                             end
                             if Frame == #Animation and judgement_cut_count == 5 then
                                 Sheathing=true
-                                Frame=1
+                                Frame = 1
                                 FrameTime = 0
                                 judgement_cut_active = false
                                 judgement_cut_count = 0
@@ -1270,7 +1275,7 @@ else
                                 
                                 if Frame == #Animation then
                                     if judgement_cut_active and not Sheathing then
-                                        Frame=1
+                                        Frame = 1
                                         FrameTime = 0
                                         judgement_cut_count = judgement_cut_count + 1
                                         judgementCutSound()
@@ -1285,12 +1290,14 @@ else
                                                 if owner():isOnGround() then
                                                     AnimationData = Animations["atk_attack_01"]
                                                     Frame = 1
+                                                    FrameTime = 0
                                                     swingSoundYamatoSheath()
                                                     attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-30)},false,0.5})
                                                     dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,30,"sheath"}}
                                                 else
                                                     AnimationData = Animations["atk_attack_04"]
                                                     Frame = 1
+                                                    FrameTime = 0
                                                     swingSoundYamatoSheath()
                                                     net.start("float")
                                                     net.send()
@@ -1298,21 +1305,51 @@ else
                                                     dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,75,"blade"}}
                                                 end
                                             else
-                                                nextAnim(AnimationName)
+                                                if AnimationName == "atk_attack_02" and (timer.curtime() - m1downct > 0.6) then
+                                                    quick_judgement_cut_block = true
+                                                    AnimationData = Animations["atk_rapid_slash_ex"]
+                                                    Rapid_Slash_Ex_Count = 1
+                                                    Frame = 1
+                                                    FrameTime = 0
+                                                    timer.stop("sheath")
+                                                    block_judgement_cut = true
+                                                elseif AnimationName != "atk_rapid_slash_ex" then
+                                                    nextAnim(AnimationName)
+                                                end
                                             end
                                         end
                                     end
                                 end
-                                
                                 m1downct = timer.curtime()
                             end
-                            if timer.curtime() - m1downct > 1 then
+                            if AnimationName == "atk_rapid_slash_ex" and Frame == #Animation-2 and not Sheathing and Rapid_Slash_Ex_Count < 20 then
+                                Frame = 2
+                                FrameTime = 0
+                                Rapid_Slash_Ex_Count = Rapid_Slash_Ex_Count + 1
+                                swingSoundYamato()
+                                Rapid_Slash_Ex_Count = math.clamp(Rapid_Slash_Ex_Count,1,20)
+                                if Rapid_Slash_Ex_Count == 20 then
+                                    dmgframe = {2,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,125,"blade"}}
+                                    attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-5)},true,7})
+                                    
+                                    timer.create("sheath",0.25,1,function()
+                                        Sheathing=true
+                                        Frame = 1
+                                        FrameTime = 0
+                                        Rapid_Slash_Ex_Count = 0
+                                    end)
+                                else
+                                    dmgframe = {2,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,75,"blade"}}
+                                    attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45+math.random(-5,8))},true,0.5})
+                                end
+                            end
+                            if timer.curtime() - m1downct > 1 and AnimationName != "atk_rapid_slash_ex" then
                                 if judgement_cut_active != true and block_judgement_cut != true then
                                     judgement_cut_count = 0
                                     Sheathing = false
                                     judgement_cut_ready = false
                                     judgement_cut_active = true
-                                    Frame=1
+                                    Frame = 1
                                     FrameTime = 0
                                     timer.stop("sheath")
                                     m1downct = timer.curtime()
@@ -1336,6 +1373,12 @@ else
                                 m1down = false
                             end
                             block_judgement_cut = false
+                            if Rapid_Slash_Ex_Count > 0 and Rapid_Slash_Ex_Count != 20 then
+                                Sheathing=true
+                                Frame = 1
+                                FrameTime = 0
+                                Rapid_Slash_Ex_Count = 0
+                            end
                         end
                         if owner():keyDown(IN_KEY.ATTACK2) then
                             if m2down != true then
