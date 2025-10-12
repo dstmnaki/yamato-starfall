@@ -52,3 +52,12 @@ FORWARD+M2 - Downwards Cut (Air)
 
 M1 - Judgement Cut (Hold to prepare, release, press up to 5 times)
 M1 - Judgement Cut (Frame perfect press after sheathing, does not stack)
+
+
+Style System
+
+D|C|B|A|S|SS|SSS
+2|3|5|7|9|11|15
+
+the value is divided by 9 (x/9) so at style S you get *1 damage multiplier, the style meter builds up as you make successfull connections when you attack, move spam is detected, so you should switch around, use special attacks etc, if you just spam 1, the meter will build up very slowly, and towards the end the reduction rate will be higher than what you can get from spamming light attack, so you won't be able to get past S rank damage!
+the more you spam one move, the slower your style meter fills, if you switch attacks, the reduction multiplier will reset
