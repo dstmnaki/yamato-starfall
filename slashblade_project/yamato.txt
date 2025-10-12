@@ -1099,7 +1099,7 @@ else
                 local c1_parent = cloth1:getParent()
                 
                 if c1_parent and c1_parent != nil and c1_parent:isValid() then
-                    local up = Vector(0, 0, -1)
+                    local up = Vector(-owner():getVelocity().x/53+owner():getVelocity().y/53*0.6, -owner():getVelocity().y/53, -1)
                     local forward = Angle(0,c1_parent:getUp():getAngle().yaw,0):getForward()
                     local right = forward:cross(up)
                     up = right:cross(forward)
