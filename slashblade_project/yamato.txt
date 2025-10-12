@@ -599,7 +599,7 @@ else
             local pos = data[2]
             local area_size = data[3]
             local damage = data[4]
-            local toTable = find.inSphere(pos, area_size, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
+            local toTable = find.inSphere(pos, area_size*2, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
             if toTable and #toTable > 0 and damage and damage > 0 then
                 local sound_type = data[5]
                 if sound_type == "blade" then
@@ -615,7 +615,7 @@ else
             local pos = data[2]
             local area_size = data[3]
             local damage = data[4]
-            local toTable = find.inSphere(pos, area_size, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
+            local toTable = find.inSphere(pos, area_size*2, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
             if toTable and #toTable > 0 and damage and damage > 0 then
                 net.start("send_damage")
                 net.writeTable({toTable,damage})
@@ -625,7 +625,7 @@ else
             local pos = data[2]
             local area_size = data[3]
             local damage = data[4]
-            local toTable = find.inSphere(pos, area_size, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
+            local toTable = find.inSphere(pos, area_size*2, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
             if toTable and #toTable > 0 and damage and damage > 0 then
                 hitSoundYamato()
                 net.start("send_damage_up")
@@ -636,7 +636,7 @@ else
             local pos = data[2]
             local area_size = data[3]
             local damage = data[4]
-            local toTable = find.inSphere(pos, area_size, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
+            local toTable = find.inSphere(pos, area_size*2, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
             if toTable and #toTable > 0 and damage and damage > 0 then
                 hitSoundYamato()
                 net.start("send_damage_down")
@@ -793,7 +793,7 @@ else
             t.holos[i]:suppressEngineLighting(true)
             
             timer.simple(1/12*i,function()
-                deal_damage({"judgement_cut",pos,orb_size*2,75})
+                deal_damage({"judgement_cut",pos,orb_size,75})
             end)
         end
         t.scale = orb_size
