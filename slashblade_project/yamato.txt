@@ -612,7 +612,7 @@ else
         if type == "sphere" then
             local pos = data[2]
             local area_size = data[3]
-            local damage = data[4]*select(math.clamp(stylish_rank_state,1,7),2,3,5,7,9,12,15)/10
+            local damage = data[4]*select(math.clamp(stylish_rank_state,1,7),2,3,5,7,9,12,15)/9
             local toTable = find.inSphere(pos, area_size*2, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
             if toTable and #toTable > 0 and damage and damage > 0 then
                 local sound_type = data[5]
@@ -655,7 +655,7 @@ else
         elseif type == "up" then
             local pos = data[2]
             local area_size = data[3]
-            local damage = data[4]*select(math.clamp(stylish_rank_state,1,7),2,3,5,7,9,12,15)/10
+            local damage = data[4]*select(math.clamp(stylish_rank_state,1,7),2,3,5,7,9,12,15)/9
             local toTable = find.inSphere(pos, area_size*2, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
             if toTable and #toTable > 0 and damage and damage > 0 then
                 hitSoundYamato()
@@ -678,7 +678,7 @@ else
         elseif type == "down" then
             local pos = data[2]
             local area_size = data[3]
-            local damage = data[4]*select(math.clamp(stylish_rank_state,1,7),2,3,5,7,9,12,15)/10
+            local damage = data[4]*select(math.clamp(stylish_rank_state,1,7),2,3,5,7,9,12,15)/9
             local toTable = find.inSphere(pos, area_size*2, function(ent) if ent == owner() then return false end return (ent:isPlayer() and (ent:getHealth() > 0)) or (ent:isNPC() and (ent:getHealth() > 0)) end)
             if toTable and #toTable > 0 and damage and damage > 0 then
                 hitSoundYamato()
