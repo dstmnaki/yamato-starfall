@@ -844,22 +844,25 @@ else
     local sheath_models = {}
     local setwalkspeedct = 0
     local movement_check = false
+    local BLOCK_CALCVIEW = true
     if player() == owner() then
         hook.add("HUDShouldDraw", "", function(str)
             if str == "CHudCrosshair" then
                 return false
             end
         end)
-        if not STATIONARY then
-            hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
-                local time_og = math.clamp((timer.curtime() - getviewpunch[1])*1.5,0,1)
-                local time = math.easeInBack(math.clamp(1 - time_og,0,1))
-                local viewpunch = math.slerpQuaternion(Angle():getQuaternion(), getviewpunch[2]:getQuaternion()*0.5, math.sin(math.rad(time*180))):getEulerAngle()
-                return {
-                    angles = ang + viewpunch,
-                    origin = owner():getShootPos()
-                }
-            end)
+        if not BLOCK_CALCVIEW then
+            if not STATIONARY then
+                hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+                    local time_og = math.clamp((timer.curtime() - getviewpunch[1])*1.5,0,1)
+                    local time = math.easeInBack(math.clamp(1 - time_og,0,1))
+                    local viewpunch = math.slerpQuaternion(Angle():getQuaternion(), getviewpunch[2]:getQuaternion()*0.5, math.sin(math.rad(time*180))):getEulerAngle()
+                    return {
+                        angles = ang + viewpunch,
+                        origin = owner():getShootPos()
+                    }
+                end)
+            end
         end
         enableHud(owner(), true)
         
@@ -877,6 +880,9 @@ else
         local w, h = render.getGameResolution()
         
         hook.add("DrawHUD", "", function()
+            render.drawLine(w/2,h/2-h*0.005,w/2,h/2+h*0.005)
+            render.drawLine(w/2-h*0.005,h/2,w/2+h*0.005,h/2)
+            
             if pthl.ready then
                 render.setMaterial(sheath_mat_overlay)
                 local time = math.clamp(1.5-(timer.curtime() - sheath_time)*12,0,1)*1.25
