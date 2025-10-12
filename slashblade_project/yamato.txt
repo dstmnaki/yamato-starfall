@@ -1005,7 +1005,7 @@ else
                 end
             end
             if stylish_rank_state > 0 then
-                if stylish_rank_buildup > 1 then
+                if stylish_rank_buildup > 1 and stylish_rank_state < 7 then
                     stylish_rank_buildup = 0.25
                     stylish_rank_state = stylish_rank_state + 1
                     stylish_rank_buildup_ct = timer.curtime()
