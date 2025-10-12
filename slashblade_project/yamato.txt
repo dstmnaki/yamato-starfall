@@ -221,6 +221,10 @@ if SERVER then
 else
     if player() ~= owner() then return end
     
+    print("YAMATO by Nakkitsunami")
+    print("Check for updates in here https://github.com/dstmnaki/yamato-starfall/tree/main")
+    print("Also includes combo list and explanation of style meter")
+    
     if hologram.hologramsLeft() < 500 then
         print("Holo limit low, running sf_holograms_max_cl 500 (or more) is recommended!")
     end
