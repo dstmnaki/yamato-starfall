@@ -587,6 +587,13 @@ else
     local dmgframe = {}
     local Rapid_Slash_Ex_Count = 0
     
+    local stylish_rank_state = 0
+    local stylish_rank_buildup = 0
+    local stylish_rank_state_down_ct = timer.curtime()
+    local stylish_rank_buildup_ct = timer.curtime()
+    local stylish_mult = 1
+    local last_attack = "start"
+    local current_attack = ""
     hook.add("net","",function(name,len,ply)
         if name == "double_jump_snd" then
             doubleJumpSound()
@@ -610,6 +617,17 @@ else
                 net.start("send_damage")
                 net.writeTable({toTable,damage})
                 net.send()
+                if last_attack != "" and last_attack == current_attack then
+                    stylish_mult = math.clamp(stylish_mult - stylish_mult*0.1,0.1,1)
+                else
+                    stylish_mult = 1
+                end
+                
+                last_attack = current_attack
+                stylish_rank_buildup = stylish_rank_buildup + 0.05 * stylish_mult * math.clamp(1 + #toTable / 3,1,2)
+                stylish_rank_buildup_ct = timer.curtime()
+                stylish_rank_state_down = false
+                stylish_rank_state_down_ct = timer.curtime()
             end
         elseif type == "judgement_cut" then
             local pos = data[2]
@@ -620,6 +638,12 @@ else
                 net.start("send_damage")
                 net.writeTable({toTable,damage})
                 net.send()
+                
+                last_attack = current_attack
+                stylish_rank_buildup = stylish_rank_buildup + 0.05 * 1/4 * math.clamp(1 + #toTable / 3,1,2)
+                stylish_rank_buildup_ct = timer.curtime()
+                stylish_rank_state_down = false
+                stylish_rank_state_down_ct = timer.curtime()
             end
         elseif type == "up" then
             local pos = data[2]
@@ -631,6 +655,18 @@ else
                 net.start("send_damage_up")
                 net.writeTable({toTable,damage})
                 net.send()
+                
+                if last_attack != "" and last_attack == current_attack then
+                    stylish_mult = math.clamp(stylish_mult - stylish_mult*0.1,0.1,1)
+                else
+                    stylish_mult = 1
+                end
+                
+                last_attack = current_attack
+                stylish_rank_buildup = stylish_rank_buildup + 0.05 * stylish_mult * math.clamp(1 + #toTable / 3,1,2)
+                stylish_rank_buildup_ct = timer.curtime()
+                stylish_rank_state_down = false
+                stylish_rank_state_down_ct = timer.curtime()
             end
         elseif type == "down" then
             local pos = data[2]
@@ -642,6 +678,17 @@ else
                 net.start("send_damage_down")
                 net.writeTable({toTable,damage})
                 net.send()
+                if last_attack != "" and last_attack == current_attack then
+                    stylish_mult = math.clamp(stylish_mult - stylish_mult*0.1,0.1,1)
+                else
+                    stylish_mult = 1
+                end
+                
+                last_attack = current_attack
+                stylish_rank_buildup = stylish_rank_buildup + 0.1 * stylish_mult * math.clamp(1 + #toTable / 3,1,2)
+                stylish_rank_buildup_ct = timer.curtime()
+                stylish_rank_state_down = false
+                stylish_rank_state_down_ct = timer.curtime()
             end
         end
     end
@@ -653,18 +700,24 @@ else
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-35+180)},false,0.5})
             swingSoundYamatoSheath()
             dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,30,"sheath"}}
+            
+            current_attack = owner():isOnGround() and "light" or "light_but_air"
         end
         if current == "atk_attack_02" then
             AnimationData=Animations["atk_attack_04"]
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-35)},true,1.5})
             swingSoundYamato()
             dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,75,"blade"}}
+            
+            current_attack = owner():isOnGround() and "light" or "light_but_air"
         end
         if current == "atk_attack_04" then
             AnimationData=Animations["atk_attack_05"]
             attack_fx({"simple",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-45+180)},true,2})
             swingSoundYamato()
             dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,75,"blade"}}
+            
+            current_attack = owner():isOnGround() and "light" or "light_but_air"
         end
         if current == "atk_attack_05" then
             if owner():isOnGround() then
@@ -674,6 +727,8 @@ else
                 end)
                 swingSoundYamato()
                 dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,75,"blade"}}
+                
+                current_attack = "light"
             else
                 AnimationData=Animations["atk_aerial_rave"]
                 attack_fx({"simple_noviewpunch",{owner():getEyePos()+owner():getAimVector()*45,Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,-125)},true})
@@ -694,6 +749,8 @@ else
                 dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,150,"blade"}}
                 net.start("goup_small")
                 net.send()
+                
+                current_attack = "light_but_air"
             end
         end
         if AnimationData[1] != current then
@@ -723,6 +780,8 @@ else
                     stepSound()
                     grabWeaponSound()
                     dmgframe = {2,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,125,"blade"}}
+                    
+                    current_attack = "rapid_slash"
                 end
             else
                 if current != "atk_down" then
@@ -733,6 +792,8 @@ else
                     net.send()
                     grabWeaponSound()
                     dmgframe = {1,{"down",owner():getEyePos()+Angle(0,owner():getEyeAngles().yaw,0):getForward()*30,60,150}}
+                    
+                    current_attack = "down_cut"
                 end
             end
         end
@@ -746,6 +807,8 @@ else
             net.send()
             grabWeaponSound()
             dmgframe = {2,{"up",owner():getEyePos()+Angle(0,owner():getEyeAngles().yaw,0):getForward()*30,60,100}}
+            
+            current_attack = "upper_cut"
         end
         if current == "atk_attack_02" and not (owner():keyDown(IN_KEY.SPEED) and (owner():keyDown(IN_KEY.BACK) or owner():keyDown(IN_KEY.FORWARD))) and current != "atk_attack_03" then
             AnimationData=Animations["atk_attack_03"]
@@ -754,6 +817,8 @@ else
             dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,125,"blade"}}
             net.start("short_dash")
             net.send()
+            
+            current_attack = "heavy_but_cool"
         end
         if AnimationData[1] != current then
             Frame = 1
@@ -877,9 +942,78 @@ else
         
         sheath_mat_overlay = material.load("sprites/light_ignorez")
         
+        stylish_rank = {}
+        stylish_rank[1] = material.create("UnlitGeneric")
+        stylish_rank[1]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/na5r7lor8ifa4s570zoxp/dope.png?rlkey=85db2pf1atx1jtab8kf96dw64&dl=1", nil, nil)
+        
+        stylish_rank[2] = material.create("UnlitGeneric")
+        stylish_rank[2]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/6h2n3p8inf946mzrjojce/crazy.png?rlkey=jt3rvm1awgxt006361u065gik&dl=1", nil, nil)
+        
+        stylish_rank[3] = material.create("UnlitGeneric")
+        stylish_rank[3]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/3paaft0xl30cb7s8u3dxp/blast.png?rlkey=wufi4hls72e2f10nexbl8w421&dl=1", nil, nil)
+        
+        stylish_rank[4] = material.create("UnlitGeneric")
+        stylish_rank[4]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/4yvc1obrgylpjdajcrcuz/alright.png?rlkey=rh4stqp35xqjtsv1ugy8pikld&dl=1", nil, nil)
+        
+        stylish_rank[5] = material.create("UnlitGeneric")
+        stylish_rank[5]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/h0kuo06o5iz2561xzjn37/sweet.png?rlkey=vxnr2dvp0u3mznno5rvdz05zl&dl=1", nil, nil)
+        
+        stylish_rank[6] = material.create("UnlitGeneric")
+        stylish_rank[6]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/dfndn91322te4qar5p9mj/showtime.png?rlkey=azbez762mkvezvdbq1uk1zbjz&dl=1", nil, nil)
+        
+        stylish_rank[7] = material.create("UnlitGeneric")
+        stylish_rank[7]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/p1oq2m4w42jfrhco6wahm/stylish.png?rlkey=10f0iifa20ng1i8roo0byz82g&dl=1", nil, nil)
+        
         local w, h = render.getGameResolution()
         
+        local hud_first = false
         hook.add("DrawHUD", "", function()
+            if hud_first != true then
+                hud_first = true
+                for i = 1, 7 do
+                    render.setMaterial(stylish_rank[i])
+                end
+            end
+            if stylish_rank_state > 0 then
+                if stylish_rank_buildup > 1 then
+                    stylish_rank_buildup = 0.25
+                    stylish_rank_state = stylish_rank_state + 1
+                    stylish_rank_buildup_ct = timer.curtime()
+                else
+                    stylish_rank_buildup = stylish_rank_buildup - math.clamp((timer.curtime() - stylish_rank_buildup_ct),0,0.001)
+                end
+                
+                stylish_rank_buildup = math.clamp(stylish_rank_buildup,0,1)
+                if stylish_rank_buildup <= 0 and stylish_rank_state_down != true then
+                    stylish_rank_state_down = true
+                    stylish_rank_state_down_ct = timer.curtime()
+                    stylish_rank_state = stylish_rank_state - 1
+                    
+                end
+                if stylish_rank_state_down and timer.curtime() - stylish_rank_state_down_ct > 2 then
+                    stylish_rank_state_down = false
+                    stylish_rank_state = 0
+                    stylish_rank_buildup = 0
+                end
+                stylish_rank_state = math.clamp(stylish_rank_state,0,7)
+                render.setColor(Color(255,255,255,stylish_rank_state>0 and 255 or 0))
+                render.setMaterial(stylish_rank[stylish_rank_state])
+                render.drawTexturedRect(w-w*0.2,h*0.075,h*0.45,h*0.45)
+                
+                render.setColor(Color(25,25,25,125))
+                render.drawRectRotated(w-w*0.175+h*0.14*0.5,h*0.215,h*0.15,h*0.015,0)
+                
+                render.setColor(Color(255,0,0,75))
+                render.drawRectRotated(w-w*0.175+h*0.14*(stylish_rank_buildup*0.5),h*0.215,h*0.14*(stylish_rank_buildup),h*0.007,0)
+                
+                render.setColor(Color(0,0,0,125))
+                render.drawRectRotated(w-w*0.175+h*0.14*(1.5+stylish_rank_buildup*0.5)-h*0.14,h*0.215,h*0.14*(1-stylish_rank_buildup),h*0.007,0)
+            elseif stylish_rank_buildup > 0 then
+                stylish_rank_state = 1
+            end
+            
+            
+            render.setColor(Color(255,255,255,255))
             render.drawLine(w/2,h/2-h*0.005,w/2,h/2+h*0.005)
             render.drawLine(w/2-h*0.005,h/2,w/2+h*0.005,h/2)
             
@@ -1299,6 +1433,7 @@ else
                                             if AnimationName == "idle" then
                                                 if owner():isOnGround() then
                                                     AnimationData = Animations["atk_attack_01"]
+                                                    current_attack = "light"
                                                     Frame = 1
                                                     FrameTime = 0
                                                     swingSoundYamatoSheath()
@@ -1306,6 +1441,7 @@ else
                                                     dmgframe = {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,30,"sheath"}}
                                                 else
                                                     AnimationData = Animations["atk_attack_04"]
+                                                    current_attack = "light_but_air"
                                                     Frame = 1
                                                     FrameTime = 0
                                                     swingSoundYamatoSheath()
@@ -1318,6 +1454,7 @@ else
                                                 if AnimationName == "atk_attack_02" and (timer.curtime() - m1downct > 0.6) then
                                                     quick_judgement_cut_block = true
                                                     AnimationData = Animations["atk_rapid_slash_ex"]
+                                                    current_attack = "rapid_slash_ex"
                                                     Rapid_Slash_Ex_Count = 1
                                                     Frame = 1
                                                     FrameTime = 0
@@ -1365,6 +1502,7 @@ else
                                     m1downct = timer.curtime()
                                     AnimationData = Animations["atk_judgement_cut"]
                                     grabWeaponSound2()
+                                    current_attack = "judgement_cut"
                                     if not owner():isOnGround() then
                                         net.start("float")
                                         net.send()
