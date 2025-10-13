@@ -43,17 +43,27 @@ def gather_action_keyframes(action):
             frames.add(int(round(kp.co.x)))
     return sorted(frames)
 
-def pose_bone_relative_euler_degrees(arm_obj, pb):
-    """Euler XYZ in degrees, relative to parent; torso = world angles (with -90° X offset)."""
-    if pb.parent:
-        rel_mat = pb.parent.matrix.inverted() @ pb.matrix
-        e = rel_mat.to_euler('XYZ')
+def pose_bone_relative_euler_degrees(arm_obj, bone):
+    """Get bone rotation relative to parent in ZXY Euler order, in degrees."""
+    # Torso (root) bone — world space
+    if bone.parent is None:
+        rel_matrix = bone.matrix
     else:
-        world_mat = arm_obj.matrix_world @ pb.matrix
-        e = world_mat.to_euler('XYZ')
-        # Apply offset correction to neutralize Blender's default 90° pitch
-        e.x -= math.radians(90.0)
-    return (math.degrees(e.x), math.degrees(e.y), math.degrees(e.z))
+        rel_matrix = bone.parent.matrix.inverted() @ bone.matrix
+
+    # Convert to ZXY Euler to match in-game convention
+    euler = rel_matrix.to_euler('ZXY')
+
+    # Fix the 90° pitch offset that Blender reports when neutral
+    if bone.parent is None:
+        euler.x -= math.radians(90.0)
+    
+    # Convert to degrees
+    return (
+        math.degrees(euler.x),
+        math.degrees(euler.y),
+        math.degrees(euler.z)
+    )
 
 # --- Export core ---
 def export_action_to_slashblade_text(context, arm_obj, action, out_path):
