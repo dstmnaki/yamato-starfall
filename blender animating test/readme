@@ -5,7 +5,7 @@ Do not change the bone names, you also can't add more bones, so if you want to m
 
 formatting
 
---@name slashblade_project/anim/<animation_name_lower_case>
+--@name slashblade_project/anim/<animation_name_lower_case>.txt
 <animation_name_upper_case>={
 {
 torso angle,
