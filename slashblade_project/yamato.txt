@@ -496,6 +496,7 @@ else
     local Animations={}
     local AnimationNames={}
     ac=1 AnimationNames[ac] = "idle"                                Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_IDLE_01}
+    ac=ac+1 AnimationNames[ac] = "idle2"                            Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_IDLE_02}
     ac=ac+1 AnimationNames[ac] = "atk_attack_01"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_01,ANIM_ATTACK_01_SHEATH}
     ac=ac+1 AnimationNames[ac] = "atk_attack_02"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_02,ANIM_ATTACK_02_SHEATH}
     ac=ac+1 AnimationNames[ac] = "atk_attack_03"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_03,ANIM_ATTACK_03_SHEATH}
@@ -1316,7 +1317,7 @@ else
                         for I = 1, 9 do
                             if holo and holo != nil and holo:isValid() then
                                 LastFrame=Animation[math.clamp(Frame,1,FrameCount)][I]
-                                NextFrame=Animation[((math.clamp(Frame+1,1,FrameCount))==FrameCount+1) and 1 or math.clamp(Frame+1,1,FrameCount)][I]
+                                NextFrame=Animation[math.clamp(Frame+1,1,FrameCount)][I]
                                 holo = pthl.holos[bones[I]]
                                 
                                 mix = FrameTime/FrameRate
@@ -1328,6 +1329,7 @@ else
                         end
                         
                         FrameRate = Animation[math.clamp(Frame,1,FrameCount)][10]
+                        
                         if judgement_cut_ready then
                             FrameTimeAdd = Sheathing and 40 or 60
                         else
@@ -1394,7 +1396,7 @@ else
                                 
                                 if Frame > #Animation then
                                     if Sheathing then
-                                        AnimationData=Animations[AnimationNames[1]]
+                                        AnimationData=Animations["idle"]
                                         Frame = 1
                                         FrameTime = 0
                                         Sheathing=false
