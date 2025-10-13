@@ -53,10 +53,6 @@ def pose_bone_relative_euler_degrees(arm_obj, bone):
 
     # Convert to ZXY Euler to match in-game convention
     euler = rel_matrix.to_euler('ZXY')
-
-    # Fix the 90° pitch offset that Blender reports when neutral
-    if bone.parent is None:
-        euler.x -= math.radians(90.0)
     
     # Convert to degrees
     return (
