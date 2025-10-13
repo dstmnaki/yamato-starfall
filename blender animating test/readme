@@ -1,5 +1,6 @@
 Here's a wip blender plugin for converting the animation data to the starfall format i use, this was created using chatgpt, it works as far as i have tested, i haven't done extensive testing on the root/torso angles, but it should work just fine, i had to negate 90 from pitch so if any issues arrive, i'll try to fix them
 
+Tested on blender 3.2 but should work all the way up to 4+ and as low as 2.8
 
 Do not change the bone names, you also can't add more bones, so if you want to mess around with ik, add a control rig on top
 
