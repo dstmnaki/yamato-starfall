@@ -496,7 +496,6 @@ else
     local Animations={}
     local AnimationNames={}
     ac=1 AnimationNames[ac] = "idle"                                Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_IDLE_01}
-    ac=ac+1 AnimationNames[ac] = "idle2"                            Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_IDLE_02}
     ac=ac+1 AnimationNames[ac] = "atk_attack_01"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_01,ANIM_ATTACK_01_SHEATH}
     ac=ac+1 AnimationNames[ac] = "atk_attack_02"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_02,ANIM_ATTACK_02_SHEATH}
     ac=ac+1 AnimationNames[ac] = "atk_attack_03"                    Animations[AnimationNames[ac]]={AnimationNames[ac],ANIM_ATTACK_03,ANIM_ATTACK_03_SHEATH}
