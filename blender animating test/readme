@@ -4,7 +4,7 @@ Tested on blender 3.2 but should work all the way up to 4+ and as low as 2.8
 
 Do not change the bone names, you also can't add more bones, so if you want to mess around with ik, add a control rig on top
 
-formatting
+Formatting:
 
 --@name slashblade_project/anim/<animation_name_lower_case>.txt
 <animation_name_upper_case>={
@@ -22,3 +22,83 @@ frame length (empty frames between keyframes, from current to next),
 true/false (sword in hand? this is automatically set to true as most animations have the sword out of sheath, set it to false if you need to sheath the sword)
 } <- comma ',' will be added automatically if you have more frames
 }
+
+
+How to use:
+
+Get the blend setup ready, open blender 3.2, add the plugin listed in this repo, open the blend file
+
+Animate the rig as you wish, i've included the idle pose as frame 0 so you should save that somewhere
+
+No need to bake your animation, i handle interpolation etc in starfall, the time between keyframes is your frame length, so if you have idle at frame 0 and attack at frame 10, it will take 9 or 10 cycles for the animation to be finished, you can adjust the speed in the starfall, currently it's manual labor but i have plans on adding a sort of "frame rate" value you can edit per animation
+
+You can toggle the sword in hand or in sheath from the sword object, go to 'Object Constraint Properties' and click the 'eye' icon in either 'IN_SHEATH' or 'IN_HAND' to set the position to be in either one, this won't effect the animation, but you can animate easier this way, i'll probably later make it so if 'IN_HAND' is checked, it sets the boolean to true for the frame data
+
+When you are ready to export the animation, give the animation a name (under armature, animation, ANIM_NAME, double click it), select the rig, go to 'Object Data Properties' and under 'Slashblade Export' click 'Export Slashblade Anim (.txt)' the file will be located in '.blend location/slashblade_project/anim/<file name>.txt'
+
+Now toss that folder structure into starfall editor and save it, or to the folder garry's mod/garry's mod/data/starfall/ (slashblade_project/anim/ if you copied the file itself)
+
+Open slashblade_project/anim/anim_lib.txt and add the following lines (replace the <anim file name> with your file name)
+
+--@include slashblade_project/anim/<anim file name>.txt
+require("slashblade_project/anim/<anim file name>.txt")
+
+In the yamato code, add the following line(s) to around line 500 where 'local Animations={}' is defined, you can press control f to search for this line
+
+ac=ac+1 AnimationNames[ac] = "<your animation name>"
+Animations[AnimationNames[ac]]={AnimationNames[ac],<animation table name from the animation file, the upper case text i.e ANIM_IDLE_01>,<desired sheathing animation table name, i.e ANIM_ATTACK_01_SHEATH>}
+
+Do that for each animation you want to add
+
+Next depending on how you want to add the animation, you have a few options
+
+function nextAnim(current), this function is used for telling the animation framework which animation should come next in a combo, you can add it here in following format
+
+if current == "<animation to transition from>" then
+AnimationData = Animations["<animation name>"]
+-- optional settings
+<attack effect> attack_fx({"<attack type, should be left as 'simple', this creates the line you see when you use attacks>",{<effect position, should be left as 'owner():getEyePos()+owner():getAimVector()*45'>,<angle, Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,<desired rotation, if you have enabled the calview hook, the rotation of this will effect which direction your camera will be rotated towards>)},<boolean, is sword out?, sets the color of the effect to either dark for sheat, bright blue for blade>,<view punch intensity, 0.5 is a good starting value, if enabled>})
+<sound> (i.e swingSoundYamatoSheath() when you swing with sheath, swingSoundYamato() for blade, you can use other sound functions as well, this is also optional)
+dmgframe = {<frame which to deal damage>,{"<damage type, sphere is recommended, other ones are special>",<damage area position>,<damage area size>,<damage>,"<hit sound type, sheath or blade>"} (i.e {1,{"sphere",owner():getEyePos()+owner():getAimVector()*30,60,30,"sheath"}})
+current_attack = "<attack type>" (i.e owner():isOnGround() and "light" or "light_but_air", this sets the type to either light, or light_but_air if you are in air)
+end
+
+
+function heavyAttack(current), this function is used for playing heavy attack animations
+
+similar to nextAnim, but you can set your own requirements like owner():keyDown(IN_KEY.FORWARD) for checking if player is pressing W, alternatively input.isKeyDown(KEY.W), this is owner only, so only your input will be detected, but :keyDown() is preferred if i were to fix the animation networking code (not included currently)
+
+timer.simple(<delay in seconds>,function()
+delayed effects etc
+end)
+
+net.start("dash")
+net.send() -- for example to push the player forwards, replicated from 'rapid slash' attack
+stepSound() if you want to make it play the step sound with the attack
+grabWeaponSound() to play a sound used when executing judgement cuts for example
+dmgframe applies here as well
+current_attack = "attack type again"
+
+
+around line 1450 you get to mouse1 detection, from line 1476 starts first attack animations, "atk_attack_01" and "atk_attack_04" for when not on ground, same thing for timed attack "atk_rapid_slash_ex" which is executed after "atk_attack_02" if timed right, you can use these formats as well
+
+from line 1538 starts judgement cut activation, you can also mess around with that, the actual repeated attack is above the first attack animations, lines 1466 to 1475
+
+
+to adjust the animation speed, go to line 1335
+
+if AnimationName == "<animation name>" then
+FrameTimeAdd = Sheathing and <sheathing frame rate, i.e 45> or <attack frame rate, i.e 125>
+
+
+
+with those you should be able to add your own animations and checks for when to play them
+
+
+
+
+
+
+
+
+
