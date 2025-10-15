@@ -100,12 +100,12 @@ if SERVER then
     
     
     local players_but_owner = find.allPlayers(function(a)
-        return a != owner()
+        return a and a != nil and a:isValid() and a != owner()
     end)
     
     function findPlayers()
         local this_table = find.allPlayers(function(a)
-            return a != owner()
+            return a and a != nil and a:isValid() and a != owner()
         end)
         players_but_owner = this_table
     end
