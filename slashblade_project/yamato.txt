@@ -1241,7 +1241,7 @@ else
     local quick_judgement_cut_block = true
     
     hook.add("think","main",function()
-        if owner():getHealth() > 0 and owner():getActiveWeapon() != nil and owner():getActiveWeapon():isValid() then
+        if owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0 and owner():getActiveWeapon() and owner():getActiveWeapon() != nil and owner():getActiveWeapon():isValid() then
             if pthl.ready then
                 local cloth1 = pthl.holos[bones["cloth_1"]]
                 local cloth2 = pthl.holos[bones["cloth_2"]]
