@@ -99,9 +99,7 @@ if SERVER then
     end
     
     
-    local players_but_owner = find.allPlayers(function(a)
-        return a and a != nil and a:isValid() and a != owner()
-    end)
+    local players_but_owner = {}
     
     function findPlayers()
         local this_table = find.allPlayers(function(a)
@@ -117,6 +115,10 @@ if SERVER then
     hook.add("PlayerDisconnected", "", function(ply)
         findPlayers()
     end)
+    hook.add("PlayerDisconnect", "", function(networkid, name, player, reason, isbot)
+        findPlayers()
+    end)
+    findPlayers()
     
     hook.add("net","",function(name,len,ply)
         if name == "send_animation" then
