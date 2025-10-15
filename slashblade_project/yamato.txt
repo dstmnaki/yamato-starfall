@@ -114,7 +114,7 @@ if SERVER then
         findPlayers()
     end)
     
-    hook.add("PlayerDisconnect", "", function(networkid, name, player, reason, isbot)
+    hook.add("PlayerDisconnected", "", function(ply)
         findPlayers()
     end)
     
