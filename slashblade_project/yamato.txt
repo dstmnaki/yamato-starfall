@@ -1478,10 +1478,6 @@ else
                                         delay = false
                                     else
                                         Frame = #Animation
-                                        if AnimationName == "atk_rapid_slash_ex" then
-                                            Frame = 2
-                                            FrameTime = 0
-                                        end
                                         if player() == owner() then
                                             if judgement_cut_active then judgement_cut_ready = true end
                                             if AnimationName == "atk_attack_04" and owner():isOnGround() then
@@ -1497,6 +1493,11 @@ else
                                                     Frame = 1
                                                     FrameTime = 0
                                                 end)
+                                            end
+                                        else
+                                            if AnimationName == "atk_rapid_slash_ex" then
+                                                Frame = 2
+                                                FrameTime = 0
                                             end
                                         end
                                     end
