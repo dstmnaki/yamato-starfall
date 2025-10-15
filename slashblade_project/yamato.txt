@@ -98,7 +98,6 @@ if SERVER then
         end)
     end
     
-    
     local players_but_owner = {}
     
     function findPlayers()
@@ -119,6 +118,15 @@ if SERVER then
         findPlayers()
     end)
     findPlayers()
+    
+    timer.create("check_player_valid",0.25,0,function()
+        for i, ply in pairs(players_but_owner) do
+            if not (ply and ply != nil and ply:isValid()) then
+                findPlayers()
+                break
+            end
+        end
+    end)
     
     hook.add("net","",function(name,len,ply)
         if name == "send_animation" then
