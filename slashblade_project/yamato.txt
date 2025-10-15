@@ -1015,7 +1015,7 @@ else
         enableHud(owner(), true)
         
         slash_mat_overlay = material.create("UnlitGeneric")
-        slash_mat_overlay:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/3nuc22yi5mvyg0y86l1rt/slash.png?rlkey=8sdhd5bf3mwwhnzx2hk7l2zzo&dl=1", nil, nil)
+        slash_mat_overlay:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/yamato-starfall/refs/heads/main/IGNORE/slash.png", nil, nil)
         
         slash_mat2_overlay = material.load("sprites/physbeam")
         
@@ -1027,25 +1027,25 @@ else
         
         stylish_rank = {}
         stylish_rank[1] = material.create("UnlitGeneric")
-        stylish_rank[1]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/na5r7lor8ifa4s570zoxp/dope.png?rlkey=85db2pf1atx1jtab8kf96dw64&dl=1", nil, nil)
+        stylish_rank[1]:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/yamato-starfall/refs/heads/main/IGNORE/dope.png", nil, nil)
         
         stylish_rank[2] = material.create("UnlitGeneric")
-        stylish_rank[2]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/6h2n3p8inf946mzrjojce/crazy.png?rlkey=jt3rvm1awgxt006361u065gik&dl=1", nil, nil)
+        stylish_rank[2]:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/yamato-starfall/refs/heads/main/IGNORE/crazy.png", nil, nil)
         
         stylish_rank[3] = material.create("UnlitGeneric")
-        stylish_rank[3]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/3paaft0xl30cb7s8u3dxp/blast.png?rlkey=wufi4hls72e2f10nexbl8w421&dl=1", nil, nil)
+        stylish_rank[3]:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/yamato-starfall/refs/heads/main/IGNORE/blast.png", nil, nil)
         
         stylish_rank[4] = material.create("UnlitGeneric")
-        stylish_rank[4]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/4yvc1obrgylpjdajcrcuz/alright.png?rlkey=rh4stqp35xqjtsv1ugy8pikld&dl=1", nil, nil)
+        stylish_rank[4]:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/yamato-starfall/refs/heads/main/IGNORE/alright.png", nil, nil)
         
         stylish_rank[5] = material.create("UnlitGeneric")
-        stylish_rank[5]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/h0kuo06o5iz2561xzjn37/sweet.png?rlkey=vxnr2dvp0u3mznno5rvdz05zl&dl=1", nil, nil)
+        stylish_rank[5]:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/yamato-starfall/refs/heads/main/IGNORE/sweet.png", nil, nil)
         
         stylish_rank[6] = material.create("UnlitGeneric")
-        stylish_rank[6]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/dfndn91322te4qar5p9mj/showtime.png?rlkey=azbez762mkvezvdbq1uk1zbjz&dl=1", nil, nil)
+        stylish_rank[6]:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/yamato-starfall/refs/heads/main/IGNORE/showtime.png", nil, nil)
         
         stylish_rank[7] = material.create("UnlitGeneric")
-        stylish_rank[7]:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/p1oq2m4w42jfrhco6wahm/stylish.png?rlkey=10f0iifa20ng1i8roo0byz82g&dl=1", nil, nil)
+        stylish_rank[7]:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/yamato-starfall/refs/heads/main/IGNORE/stylish.png", nil, nil)
         
         local font = render.createFont("TargetID", 50, 400, false, false, true, false, 0, false, false)
         
